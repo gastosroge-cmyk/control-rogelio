@@ -4,10 +4,10 @@
 <script>window.onerror=function(m,s,l,c){var d=document.createElement("pre");d.style.cssText="white-space:pre-wrap;color:#a00;padding:16px;font-size:14px";d.textContent="Error: "+m+" (línea "+l+":"+c+")";(document.body||document.documentElement).appendChild(d)};window.addEventListener("unhandledrejection",function(e){window.onerror("Promesa: "+(e.reason&&e.reason.message||e.reason),"",0,0)});</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Control Rogelio</title>
+<title>Cuidado de papi</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#1C6A65">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600&family=Public+Sans:wght@400;500;600;700&display=swap">
@@ -102,10 +102,13 @@ details summary{cursor:pointer}
 </head>
 <body>
 <div class="wrap">
-  <header style="display:grid;gap:4px">
+  <header style="display:flex;gap:12px;align-items:center">
+    <img src="logo.png" alt="" width="64" height="64" style="flex:none;width:64px;height:64px">
+    <div style="display:grid;gap:3px;min-width:0">
     <div class="eyebrow">Garantes: Bryan y Marjorie Umaña López</div>
-    <h1>Control Rogelio</h1>
+    <h1>Cuidado de papi</h1>
     <div class="sub">Exp. 24-002413-0187-FA · Facturas en gastos.roge@gmail.com</div>
+    </div>
   </header>
   <main id="main"><div class="loading">Cargando las cuentas de papi…</div></main>
 </div>
@@ -141,7 +144,7 @@ function cargar(){return run("getDatos",cf).then(usar).catch(e=>{const m=e.messa
 function pantallaClave(msg){
   const conf=!E.hayFamilia; let quien=yo||"";
   $("main").innerHTML=`<form class="card" id="fcf" style="max-width:420px;margin:24px auto;width:100%">
-  <h2>${conf?"Configurar el acceso":"Bienvenido a Control Rogelio"}</h2>
+  <h2>${conf?"Configurar el acceso":"Bienvenidos a Cuidado de papi"}</h2>
   <span class="sub">${conf?"Se crean dos claves. La <b>clave familiar</b> la tienen todos los hermanos y sirve para ver. La <b>clave de garantes</b> es solo para Bryan y Yese y sirve para registrar. Use de 4 a 8 números en cada una.":"Esto se pregunta una sola vez en este teléfono."}</span>
   <span class="lab">¿Quién es usted?</span><div class="chips" id="cfYo">${HERM.map(h=>`<button type="button" class="chip" data-q="${h}" aria-pressed="${h===quien}">${h}</button>`).join("")}</div>
   ${conf?`<label class="sub">${E.hayClave?"Clave de garantes (la que ya crearon)":"Nueva clave de garantes"}</label><input id="cg" type="password" inputmode="numeric" autocomplete="off" placeholder="Clave de garantes">${E.hayClave?"":'<input id="cg2" type="password" inputmode="numeric" autocomplete="off" placeholder="Repita la clave de garantes">'}<label class="sub">Nueva clave familiar</label>`:'<span class="lab">Clave familiar</span>'}
@@ -378,10 +381,10 @@ function dibujarRecibo(m,rc){
   const sy=Math.max(y+20,470);x.drawImage($("sig"),60,sy,480,120);
   x.lineWidth=2;x.beginPath();x.moveTo(60,sy+128);x.lineTo(560,sy+128);x.stroke();
   x.font="22px Arial";x.fillText("Firma de quien recibe: "+rc.nombre,60,sy+158);
-  x.fillStyle="#777";x.font="18px Arial";x.fillText("Generado en Control Rogelio · Exp. 24-002413-0187-FA",60,H-40);
+  x.fillStyle="#777";x.font="18px Arial";x.fillText("Generado en Cuidado de papi · Exp. 24-002413-0187-FA",60,H-40);
   return c;
 }
-run("estado").then(e=>{E=e;if(E.hayFamilia&&cf)cargar();else pantallaClave()}).catch(e=>{$("main").innerHTML=`<div class="card"><b>No se pudo abrir Control Rogelio.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="location.reload()">Volver a intentar</button></div>`});
+run("estado").then(e=>{E=e;if(E.hayFamilia&&cf)cargar();else pantallaClave()}).catch(e=>{$("main").innerHTML=`<div class="card"><b>No se pudo abrir Cuidado de papi.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="location.reload()">Volver a intentar</button></div>`});
 
 /* ---------- HOY (agenda) ---------- */
 let A=null, yo=null;
@@ -650,7 +653,7 @@ async function vMas(){
   $("main").innerHTML=`<div style="display:grid;gap:18px">
   <section class="card"><h2>Su teléfono</h2>
     <div class="row"><span class="n">Usted es<span class="t">Para saber quién marca cada cosa</span></span><span class="v"><button class="btn mini" id="mYo">${yo?esc(yo):"Elegir"}</button></span></div>
-    <div class="row"><span class="n">Tener Control Rogelio como aplicación<span class="t" id="mInsT">${instalar?"Se agrega un ícono en la pantalla de inicio.":/iPhone|iPad/.test(navigator.userAgent)?"En Safari: botón Compartir → «Agregar a inicio».":"En Chrome: menú ⋮ → «Agregar a la pantalla principal» o «Instalar aplicación»."}</span></span><span class="v">${instalar?'<button class="btn primary mini" id="mIns">Instalar</button>':""}</span></div>
+    <div class="row"><span class="n">Tener Cuidado de papi como aplicación<span class="t" id="mInsT">${instalar?"Se agrega un ícono en la pantalla de inicio.":/iPhone|iPad/.test(navigator.userAgent)?"En Safari: botón Compartir → «Agregar a inicio».":"En Chrome: menú ⋮ → «Agregar a la pantalla principal» o «Instalar aplicación»."}</span></span><span class="v">${instalar?'<button class="btn primary mini" id="mIns">Instalar</button>':""}</span></div>
     ${clave?`<div class="row"><span class="n">Clave de garantes guardada<span class="t">Puede registrar gastos e ingresos</span></span><span class="v"><button class="btn mini" id="mOlv">Olvidar</button></span></div>`:""}
   </section>
   <div id="mApor"></div>
