@@ -98,6 +98,8 @@ input.monto{font-size:1.5rem;font-weight:700;padding:10px 12px}
 .dia.on{background:var(--accent);border-color:var(--accent);color:#e6f2f0}.dia.on b{color:#fff}
 .dia.hoy{outline:2px solid var(--gold);outline-offset:1px}
 details summary{cursor:pointer}
+.row.tot{border-top:2px solid var(--ink)}.row.tot .n,.row.tot .v{font-weight:700}
+.rol p{margin:0;line-height:1.5}.rol h3{font-size:.95rem;margin:10px 0 0}.rol ul{margin:0;padding-left:18px;display:grid;gap:8px;line-height:1.45}.rol .ley{display:block;font-size:.75rem;color:var(--muted);margin-top:2px}
 .sync{position:fixed;top:10px;right:10px;z-index:30;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:.75rem;font-weight:600;padding:4px 10px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 </style>
 </head>
@@ -183,11 +185,6 @@ function vInicio(){
   const fam=D.fam.filter(f=>f[1]>0);
   const mm=Math.max(1,...D.meses.flatMap(m=>[m[1],m[2]+m[3]]));
   $("dsub").innerHTML=`<div style="display:grid;gap:18px">
-  <div class="kpis">
-    <div class="kpi main"><span class="eyebrow">Disponible en colones</span><span class="v num">${crc(r[0])}</span></div>
-    <div class="kpi"><span class="eyebrow">Dólares (BCR)</span><span class="v num">${usd(r[1])}</span></div>
-    <div class="kpi"><span class="eyebrow">Venta Tarrazú por cobrar</span><span class="v num">${crc(r[3])}</span></div>
-  </div>
   ${alerts?`<div class="pills">${alerts}</div>`:""}
   <section class="card"><div><h2>Periodo del informe</h2><div class="sub">${esc(r[5])}</div></div>
     <div class="row"><span class="n">Ingresos</span><span class="v num" style="color:var(--in)">${crc(r[6])}</span></div>
@@ -201,11 +198,17 @@ function vInicio(){
     <div class="legend"><span><i style="background:var(--in)"></i>Ingresos</span><span><i style="background:var(--accent)"></i>Gastos de papi</span><span><i style="background:var(--gold)"></i>Pagado por la familia</span></div>
   </section>`:""}
   <section class="card"><h2>Dónde está el dinero</h2>
-    ${D.cuentas.map(c=>`<div class="row"><span class="n">${esc(c.nombre)}</span><span class="t">${esc(c.titular)}${c.disponible==="No"?" · no disponible":""}</span><span class="v num">${c.moneda==="USD"?usd(c.saldo):crc(c.saldo)}</span></div>`).join("")}
+    ${D.cuentas.filter(c=>c.moneda!=="USD"&&c.disponible!=="No").map(c=>`<div class="row"><span class="n">${esc(c.nombre)}<span class="t">${esc(c.titular)}</span></span><span class="v num">${crc(c.saldo)}</span></div>`).join("")}
+    <div class="row tot"><span class="n">Total disponible en colones</span><span class="v num">${crc(r[0])}</span></div>
+    ${D.cuentas.filter(c=>c.moneda!=="USD"&&c.disponible==="No").map(c=>`<div class="row"><span class="n">${esc(/Bryan/.test(c.nombre)?"Prestado a Bryan (2% mensual)":c.nombre)}<span class="t">No disponible · ver detalle abajo</span></span><span class="v num">${crc(c.saldo)}</span></div>`).join("")}
+    ${D.cuentas.filter(c=>c.moneda==="USD").map(c=>`<div class="row"><span class="n">${esc(c.nombre)}<span class="t">${esc(c.titular)}</span></span><span class="v num">${usd(c.saldo)}</span></div>`).join("")}
+    <div class="row"><span class="n">Por cobrar de la venta de Tarrazú<span class="t">Entra en cuotas a MultiMoney</span></span><span class="v num">${crc(r[3])}</span></div>
   </section>
+  <div id="mApor"></div>
   ${cats.length?`<section class="card"><h2>Gastos por categoría</h2>${cats.map(c=>`<div class="bar"><span class="l">${esc(c[0])}</span><span class="tr"><span class="fl" style="display:block;width:${Math.max(2,c[1]/mx*100)}%"></span></span><span class="num">${crc(c[1])}</span></div>`).join("")}</section>`:""}
   ${fam.length?`<section class="card"><h2>Lo que ha puesto cada hermano</h2>${fam.map(f=>`<div class="row"><span class="n">${esc(f[0])}</span><span class="v num">${crc(f[1])}</span></div>`).join("")}</section>`:""}
   </div>`;
+  vAporte();
 }
 function movRow(m){
   const[y,mo,d]=m.fecha.split("-").map(Number); const usdM=m.moneda==="USD";
@@ -222,13 +225,30 @@ function vMovs(){
 }
 function vAporte(){
   const a=D.aporte; const pend=a.filter(x=>x.estado==="Pendiente");
-  $("mApor").innerHTML=`<section class="card"><div><h2>Préstamo de Bryan</h2><div class="sub">Debe ${crc((D.cuentas.find(c=>/Préstamo a Bryan/.test(c.nombre))||{saldo:1000000}).saldo)} a papi y paga 2% mensual de intereses (₡20.000 al mes)</div></div>
+  $("mApor").innerHTML=`<section class="card"><div><h2>Préstamo de Bryan</h2><div class="sub">Bryan tiene ${crc(Number(D.res[2])||1000000)} de papi en préstamo. Paga 2% mensual de intereses (₡20.000 al mes, 24% al año), que entran a la cuenta de papi. Es más de lo que daría cualquier banco, y el dinero sigue siendo de papi: el préstamo se devuelve completo. Aquí se ve mes a mes si está al día.</div></div>
   ${pend.length?`<span class="pill danger">${pend.length} mes${pend.length>1?"es":""} pendiente${pend.length>1?"s":""} · ${crc(pend.reduce((s,x)=>s+x.pendiente,0))}</span>`:`<span class="pill ok">Al día</span>`}
   <div>${a.filter(x=>x.estado!=="Próximo").reverse().map(x=>{const[y,m]=x.mes.split("-").map(Number);const cls={Pagado:"ok",Pendiente:"danger","Este mes":"warn"}[x.estado]||"";return `<div class="row"><span class="n">${MES[m-1][0].toUpperCase()+MES[m-1].slice(1)} ${y}</span><span class="t">Pagado ${crc(x.pagado)}</span><span class="v"><span class="pill ${cls}">${esc(x.estado)}</span></span></div>`}).join("")}</div>
   <span class="sub">Para registrar un pago: <b>+ Registrar</b> → Ingreso → «Intereses préstamo Bryan».</span></section>`;
 }
+function vRol(){
+  $("mRol").innerHTML=`<section class="card rol"><h2>Nuestro papel con papi</h2>
+  <p>Papi sigue siendo quien decide sobre su vida. La salvaguardia que dictó el juzgado en setiembre de 2026 no nos pone a decidir por él: nos pide apoyarlo para que se respeten sus derechos, su voluntad y su dinero.</p>
+  <h3>Lo que pide la ley a todos los hijos</h3>
+  <ul><li><b>Cuidarlo sin quitarle su independencia.</b> Las personas adultas mayores tienen derecho a recibir cuido de sus hijos, nietos y hermanos sin perder su autonomía. El cuido incluye salud, alimentación, protección, compañía, recreación y la vida diaria. <span class="ley">Código de Familia, arts. 231 y 232</span></li>
+  <li><b>Responder por él si le llega a faltar.</b> Los hijos deben alimentos a sus padres cuando los necesitan, según las posibilidades de cada uno. Hoy papi se sostiene con su propio dinero; si un día no alcanzara, la responsabilidad es de los siete. <span class="ley">Código de Familia, art. 169</span></li></ul>
+  <h3>Lo que nos toca como garantes (Bryan y Yese)</h3>
+  <ul><li><b>Apoyar, no sustituir.</b> Respetar lo que papi quiere y prefiere, sin conflictos de intereses ni presiones. <span class="ley">Ley 9379, art. 5</span></li>
+  <li><b>Cuidar su dinero.</b> Su plata se usa solo para él, y las decisiones grandes se hablan entre todos.</li>
+  <li><b>Rendir cuentas.</b> Informar al juzgado y a la familia en qué se usa cada colón. Esta aplicación existe para eso: todo lo que entra y sale queda aquí, con su factura.</li></ul>
+  <h3>Lo que nos toca a todos como hijos</h3>
+  <ul><li>Cumplir el turno de cada semana y las pastillas que le tocan a cada uno.</li>
+  <li>Acompañarlo a sus citas y estar pendientes de cómo está.</li>
+  <li>Hablar las cosas con respeto y decidir juntos.</li></ul>
+  <p class="sub">Esto es un resumen para la familia, no una asesoría legal. Las obligaciones exactas de los garantes están en la sentencia N.° 2026001373 del expediente 24-002413-0187-FA.</p>
+  </section>`;
+}
 function vComp(){
-  $("mComp").innerHTML=`<section class="card"><h2>Compromisos ante el juzgado</h2><span class="sub">Del informe presentado el 14/10/2026</span>
+  $("mComp").innerHTML=`<section class="card"><h2>Compromisos ante el juzgado</h2><span class="sub">Lo que Bryan y Yese se comprometieron a cumplir en el informe presentado el 14/10/2026. Aquí se marca cuando cada uno se cumple.</span>
   <div>${D.comp.map(c=>`<div class="row" style="grid-template-columns:minmax(0,1fr)"><span class="n" style="font-weight:500">${esc(c.texto)}</span>
   <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select data-f="${c.fila}" style="width:auto">${D.listas.estados.map(e=>`<option ${e===c.estado?"selected":""}>${esc(e)}</option>`).join("")}</select>${c.fecha?`<span class="sub">Cumplido el ${fLarga(c.fecha)}</span>`:""}</span></div>`).join("")}</div></section>`;
   document.querySelectorAll("select[data-f]").forEach(s=>s.onchange=async()=>{
@@ -664,14 +684,14 @@ async function vMas(){
     <div class="row"><span class="n">Tener Cuidado de papi como aplicación<span class="t" id="mInsT">${instalar?"Se agrega un ícono en la pantalla de inicio.":/iPhone|iPad/.test(navigator.userAgent)?"En Safari: botón Compartir → «Agregar a inicio».":"En Chrome: menú ⋮ → «Agregar a la pantalla principal» o «Instalar aplicación»."}</span></span><span class="v">${instalar?'<button class="btn primary mini" id="mIns">Instalar</button>':""}</span></div>
     ${clave?`<div class="row"><span class="n">Clave de garantes guardada<span class="t">Puede registrar gastos e ingresos</span></span><span class="v"><button class="btn mini" id="mOlv">Olvidar</button></span></div>`:""}
   </section>
-  <div id="mApor"></div>
+  <div id="mRol"></div>
   <div id="mComp"></div>
   <section class="card" id="mResp"><h2>Responsables</h2><span class="sub">Cargando…</span></section>
   </div>`;
   $("mYo").onclick=()=>{yo=null;try{localStorage.removeItem("cr_yo")}catch(_){}pedirYo()};
   if($("mIns"))$("mIns").onclick=async()=>{instalar.prompt();await instalar.userChoice;instalar=null;vMas()};
   if($("mOlv"))$("mOlv").onclick=()=>{olvidarClave();toast("Clave olvidada en este teléfono");render()};
-  vAporte();vComp();
+  vRol();vComp();
   try{if(!A)await cargarA();pintarResp()}catch(e){$("mResp").innerHTML=`<h2>Responsables</h2><span class="err">${esc(e.message)}</span>`}
 }
 function pintarResp(){
