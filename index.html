@@ -5,6 +5,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Control Rogelio</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1C6A65">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600&family=Public+Sans:wght@400;500;600;700&display=swap">
 <style>
 :root{--bg:#F3F6F5;--surface:#fff;--ink:#15252A;--muted:#5A6A6F;--line:#D8E0DE;--accent:#1C6A65;--accent-soft:#E0EDEB;--in:#2D7A3D;--in-soft:#E2F0E4;--warn:#9A5D16;--warn-soft:#F6EAD8;--danger:#AF3828;--danger-soft:#F6E0DC;--gold:#B8901F;
@@ -43,7 +48,7 @@ h1{font-size:1.6rem}h2{font-size:1.08rem}
 .mov .d{text-align:center;line-height:1.1}.mov .d b{display:block;font-family:var(--display);font-size:1.2rem}.mov .d span{font-size:.68rem;color:var(--muted);text-transform:uppercase}
 .mov .x{min-width:0;display:grid;gap:2px}.mov .x .t{font-weight:600;overflow-wrap:anywhere}.mov .x .m{font-size:.78rem;color:var(--muted)}
 .amt{font-weight:700;white-space:nowrap}.amt.in{color:var(--in)}.amt.mv{color:var(--muted)}
-nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);z-index:20}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);z-index:20}
 nav button{font:inherit;font-size:.78rem;font-weight:600;background:none;border:0;padding:12px 4px;color:var(--muted);cursor:pointer}
 nav button[aria-current="true"]{color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
 .fab{position:fixed;right:16px;bottom:66px;z-index:21;border-radius:999px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
@@ -73,6 +78,26 @@ dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:0;f
 img.prev{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}
 [hidden]{display:none!important}
 .n .t{display:block;font-weight:400;margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:.86rem;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.tabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.tabs button{font:inherit;font-weight:600;border:0;background:var(--surface);color:var(--muted);padding:9px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.btn.mini{padding:5px 10px;font-size:.8rem}
+.btn.grande{padding:13px;font-size:1rem;width:100%}
+.btn.warnb{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.btn.opcion{display:grid;gap:2px;text-align:left;padding:13px 14px}.btn.opcion span{font-weight:400;font-size:.84rem;color:var(--muted)}
+input.monto{font-size:1.5rem;font-weight:700;padding:10px 12px}
+.cab{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.big2{font-size:1.15rem;font-weight:700}
+.semana{display:grid;gap:6px;margin-top:6px}
+.dias7{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dia{font:inherit;font-size:.72rem;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:10px;padding:6px 0;display:grid;gap:1px;cursor:pointer;text-transform:capitalize}
+.dia b{font-size:1rem;color:var(--ink)}.dia small{font-size:.66rem}
+.dia.on{background:var(--accent);border-color:var(--accent);color:#e6f2f0}.dia.on b{color:#fff}
+.dia.hoy{outline:2px solid var(--gold);outline-offset:1px}
+details summary{cursor:pointer}
 </style>
 </head>
 <body>
@@ -86,11 +111,9 @@ img.prev{width:100%;border:1px solid var(--line);border-radius:8px;background:#f
 </div>
 <button class="btn primary fab" id="fab" hidden>+ Registrar</button>
 <nav id="nav" hidden>
-  <button data-v="inicio" aria-current="true">Inicio</button>
-  <button data-v="movs">Movimientos</button>
-  <button data-v="aporte">Préstamo</button>
-  <button data-v="agenda">Agenda</button>
-  <button data-v="comp">Compromisos</button>
+  <button data-v="hoy" aria-current="true">Hoy</button>
+  <button data-v="dinero">Dinero</button>
+  <button data-v="mas">Más</button>
 </nav>
 <div id="ov"></div>
 <div class="toast" id="toast" hidden></div>
@@ -106,7 +129,7 @@ const $=id=>document.getElementById(id);
 const hoy=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const fLarga=s=>{if(!s)return"";const[y,m,d]=s.split("-").map(Number);return d+" "+M3[m-1]+" "+y};
 const fCorta=s=>{if(!s)return"___/___/____";const[y,m,d]=s.split("-");return d+"/"+m+"/"+y};
-let D=null, vista="inicio", clave=null, cf=null;
+let D=null, vista=(/^#(hoy|dinero|mas)$/.test(location.hash)?location.hash.slice(1):"hoy"), clave=null, cf=null, sub="resumen";
 try{clave=localStorage.getItem("cr_clave");cf=localStorage.getItem("cr_familia")}catch(e){}
 
 function toast(t){const e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,3000)}
@@ -116,29 +139,31 @@ let E={};
 function usar(d){if(typeof d==="string")d=JSON.parse(d);if(!d||!d.res)throw new Error("Respuesta vacía del servidor.");D=d;render()}
 function cargar(){return run("getDatos",cf).then(usar).catch(e=>{const m=e.message||String(e);if(/incorrecta|familiar/.test(m)){cf=null;try{localStorage.removeItem("cr_familia")}catch(_){}pantallaClave(m);return}$("main").innerHTML=`<div class="card"><b>No se pudieron cargar los datos.</b><span class="sub">${esc(m)}</span><button class="btn" onclick="location.reload()">Volver a intentar</button></div>`})}
 function pantallaClave(msg){
-  const conf=!E.hayFamilia;
-  $("main").innerHTML=`<form class="card" id="fcf" style="max-width:420px;margin:30px auto;width:100%">
-  <h2>${conf?"Configurar el acceso":"Clave familiar"}</h2>
-  <span class="sub">${conf?"Se crean dos claves. La <b>clave familiar</b> la tienen todos los hermanos y sirve para ver. La <b>clave de garantes</b> es solo para Bryan y Marjorie y sirve para registrar. Use de 4 a 8 números en cada una.":"Para ver las cuentas de papi escriba la clave familiar. Solo se pide una vez en este dispositivo."}</span>
-  ${conf?`<label class="sub">${E.hayClave?"Clave de garantes (la que ya crearon)":"Nueva clave de garantes"}</label><input id="cg" type="password" inputmode="numeric" autocomplete="off" placeholder="Clave de garantes">${E.hayClave?"":'<input id="cg2" type="password" inputmode="numeric" autocomplete="off" placeholder="Repita la clave de garantes">'}<label class="sub">Nueva clave familiar</label>`:""}
+  const conf=!E.hayFamilia; let quien=yo||"";
+  $("main").innerHTML=`<form class="card" id="fcf" style="max-width:420px;margin:24px auto;width:100%">
+  <h2>${conf?"Configurar el acceso":"Bienvenido a Control Rogelio"}</h2>
+  <span class="sub">${conf?"Se crean dos claves. La <b>clave familiar</b> la tienen todos los hermanos y sirve para ver. La <b>clave de garantes</b> es solo para Bryan y Yese y sirve para registrar. Use de 4 a 8 números en cada una.":"Esto se pregunta una sola vez en este teléfono."}</span>
+  <span class="lab">¿Quién es usted?</span><div class="chips" id="cfYo">${HERM.map(h=>`<button type="button" class="chip" data-q="${h}" aria-pressed="${h===quien}">${h}</button>`).join("")}</div>
+  ${conf?`<label class="sub">${E.hayClave?"Clave de garantes (la que ya crearon)":"Nueva clave de garantes"}</label><input id="cg" type="password" inputmode="numeric" autocomplete="off" placeholder="Clave de garantes">${E.hayClave?"":'<input id="cg2" type="password" inputmode="numeric" autocomplete="off" placeholder="Repita la clave de garantes">'}<label class="sub">Nueva clave familiar</label>`:'<span class="lab">Clave familiar</span>'}
   <input id="cf1" type="password" inputmode="numeric" autocomplete="off" placeholder="Clave familiar">${conf?'<input id="cf2" type="password" inputmode="numeric" autocomplete="off" placeholder="Repita la clave familiar">':""}
-  <div class="err" id="cferr">${esc(msg&&!/creado/.test(msg)?msg:"")}</div><button class="btn primary">${conf?"Crear claves y entrar":"Entrar"}</button></form>`;
-  $("fcf").onsubmit=async e=>{e.preventDefault();const f=$("cf1").value.trim();const b=e.target.querySelector("button");
-    try{b.disabled=true;
+  <div class="err" id="cferr">${esc(msg&&!/creado/.test(msg)?msg:"")}</div><button class="btn primary grande">${conf?"Crear claves y entrar":"Entrar"}</button></form>`;
+  document.querySelectorAll("#cfYo .chip").forEach(b=>b.onclick=()=>{quien=b.dataset.q;document.querySelectorAll("#cfYo .chip").forEach(x=>x.setAttribute("aria-pressed",String(x===b)))});
+  $("fcf").onsubmit=async e=>{e.preventDefault();const f=$("cf1").value.trim();const b=e.target.querySelector(".btn.primary");
+    try{if(!quien)throw new Error("Toque su nombre arriba.");b.disabled=true;
       if(conf){const g=$("cg").value.trim();if(!E.hayClave&&g!==$("cg2").value.trim())throw new Error("Las dos claves de garantes no coinciden.");if(f!==$("cf2").value.trim())throw new Error("Las dos claves familiares no coinciden.");
         await run("configurar",g,f);E.hayFamilia=true;E.hayClave=true;clave=g;try{localStorage.setItem("cr_clave",g)}catch(_){}}
-      cf=f;try{localStorage.setItem("cr_familia",f)}catch(_){}
-      $("main").innerHTML='<div class="loading">Cargando las cuentas de papi…</div>';await cargar();
+      setYo(quien);cf=f;try{localStorage.setItem("cr_familia",f)}catch(_){}
+      $("main").innerHTML='<div class="loading">Cargando…</div>';await cargar();
     }catch(err){b.disabled=false;$("cferr").textContent=err.message||String(err)}};
 }
 function monedaCuenta(n){const c=D.cuentas.find(x=>x.nombre===n);return c?c.moneda:"CRC"}
 
 /* ---------- vistas ---------- */
 function render(){
-  $("nav").hidden=false;$("fab").hidden=false;
+  $("nav").hidden=false;
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-current",String(b.dataset.v===vista)));
-  $("fab").hidden=vista==="agenda";
-  ({inicio:vInicio,movs:vMovs,aporte:vAporte,comp:vComp,agenda:vAgenda})[vista]();
+  $("fab").hidden=!esGarante();
+  ({hoy:vHoy,dinero:vDinero,mas:vMas})[vista]();
   window.scrollTo(0,0);
 }
 function vInicio(){
@@ -148,7 +173,7 @@ function vInicio(){
   const cats=D.cats.filter(c=>c[1]>0).sort((a,b)=>b[1]-a[1]);const mx=cats[0]?.[1]||1;
   const fam=D.fam.filter(f=>f[1]>0);
   const mm=Math.max(1,...D.meses.flatMap(m=>[m[1],m[2]+m[3]]));
-  $("main").innerHTML=`<div style="display:grid;gap:18px">
+  $("dsub").innerHTML=`<div style="display:grid;gap:18px">
   <div class="kpis">
     <div class="kpi main"><span class="eyebrow">Disponible en colones</span><span class="v num">${crc(r[0])}</span></div>
     <div class="kpi"><span class="eyebrow">Dólares (BCR)</span><span class="v num">${usd(r[1])}</span></div>
@@ -161,11 +186,11 @@ function vInicio(){
     <div class="row"><span class="n">Diferencia</span><span class="v num">${crc(r[8])}</span></div>
     <div class="row"><span class="n">Pagado por la familia con dinero propio</span><span class="t">No sale de las cuentas de papi</span><span class="v num">${crc(r[9])}</span></div>
   </section>
-  <section class="card"><h2>Por mes</h2>
+  ${D.meses.some(m=>m[1]||m[2]||m[3])?`<section class="card"><h2>Por mes</h2>
     <div class="chart">${D.meses.map(m=>`<div class="c" title="${esc(m[0])}"><span style="height:${m[1]/mm*100}%;background:var(--in)"></span><span style="height:${(m[2]+m[3])/mm*100}%;background:linear-gradient(var(--gold) ${m[2]+m[3]?m[3]/(m[2]+m[3])*100:0}%,var(--accent) 0)"></span></div>`).join("")}</div>
     <div class="chart-l">${D.meses.map(m=>`<span>${m[0]?M3[Number(m[0].slice(5,7))-1]:""}</span>`).join("")}</div>
     <div class="legend"><span><i style="background:var(--in)"></i>Ingresos</span><span><i style="background:var(--accent)"></i>Gastos de papi</span><span><i style="background:var(--gold)"></i>Pagado por la familia</span></div>
-  </section>
+  </section>`:""}
   <section class="card"><h2>Dónde está el dinero</h2>
     ${D.cuentas.map(c=>`<div class="row"><span class="n">${esc(c.nombre)}</span><span class="t">${esc(c.titular)}${c.disponible==="No"?" · no disponible":""}</span><span class="v num">${c.moneda==="USD"?usd(c.saldo):crc(c.saldo)}</span></div>`).join("")}
   </section>
@@ -183,18 +208,18 @@ function movRow(m){
 function vMovs(){
   const g={};D.movs.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)||b.fila-a.fila).forEach(m=>(g[m.fecha.slice(0,7)]||=[]).push(m));
   const ks=Object.keys(g);
-  $("main").innerHTML=ks.length?`<div style="display:grid;gap:16px">${ks.map(k=>{const[y,m]=k.split("-").map(Number);return `<section class="card"><h2>${MES[m-1][0].toUpperCase()+MES[m-1].slice(1)} ${y}</h2><div>${g[k].map(movRow).join("")}</div></section>`}).join("")}</div>`:`<div class="card empty">Todavía no hay movimientos. Use <b>+ Registrar</b> para anotar el primero.</div>`;
+  $("dsub").innerHTML=ks.length?`<div style="display:grid;gap:16px">${ks.map(k=>{const[y,m]=k.split("-").map(Number);return `<section class="card"><h2>${MES[m-1][0].toUpperCase()+MES[m-1].slice(1)} ${y}</h2><div>${g[k].map(movRow).join("")}</div></section>`}).join("")}</div>`:`<div class="card empty">Todavía no hay movimientos. Use <b>+ Registrar</b> para anotar el primero.</div>`;
   document.querySelectorAll(".mov").forEach(e=>e.onclick=()=>detalle(Number(e.dataset.f)));
 }
 function vAporte(){
   const a=D.aporte; const pend=a.filter(x=>x.estado==="Pendiente");
-  $("main").innerHTML=`<section class="card"><div><h2>Préstamo de Bryan</h2><div class="sub">Debe ${crc((D.cuentas.find(c=>/Préstamo a Bryan/.test(c.nombre))||{saldo:1000000}).saldo)} a papi y paga 2% mensual de intereses (₡20.000 al mes)</div></div>
+  $("mApor").innerHTML=`<section class="card"><div><h2>Préstamo de Bryan</h2><div class="sub">Debe ${crc((D.cuentas.find(c=>/Préstamo a Bryan/.test(c.nombre))||{saldo:1000000}).saldo)} a papi y paga 2% mensual de intereses (₡20.000 al mes)</div></div>
   ${pend.length?`<span class="pill danger">${pend.length} mes${pend.length>1?"es":""} pendiente${pend.length>1?"s":""} · ${crc(pend.reduce((s,x)=>s+x.pendiente,0))}</span>`:`<span class="pill ok">Al día</span>`}
   <div>${a.filter(x=>x.estado!=="Próximo").reverse().map(x=>{const[y,m]=x.mes.split("-").map(Number);const cls={Pagado:"ok",Pendiente:"danger","Este mes":"warn"}[x.estado]||"";return `<div class="row"><span class="n">${MES[m-1][0].toUpperCase()+MES[m-1].slice(1)} ${y}</span><span class="t">Pagado ${crc(x.pagado)}</span><span class="v"><span class="pill ${cls}">${esc(x.estado)}</span></span></div>`}).join("")}</div>
-  <span class="sub">Para registrar un pago: <b>+ Registrar</b> → Ingreso → categoría "Intereses préstamo Bryan".</span></section>`;
+  <span class="sub">Para registrar un pago: <b>+ Registrar</b> → Ingreso → «Intereses préstamo Bryan».</span></section>`;
 }
 function vComp(){
-  $("main").innerHTML=`<section class="card"><h2>Compromisos ante el juzgado</h2><span class="sub">Del informe presentado el 14/10/2026</span>
+  $("mComp").innerHTML=`<section class="card"><h2>Compromisos ante el juzgado</h2><span class="sub">Del informe presentado el 14/10/2026</span>
   <div>${D.comp.map(c=>`<div class="row" style="grid-template-columns:minmax(0,1fr)"><span class="n" style="font-weight:500">${esc(c.texto)}</span>
   <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select data-f="${c.fila}" style="width:auto">${D.listas.estados.map(e=>`<option ${e===c.estado?"selected":""}>${esc(e)}</option>`).join("")}</select>${c.fecha?`<span class="sub">Cumplido el ${fLarga(c.fecha)}</span>`:""}</span></div>`).join("")}</div></section>`;
   document.querySelectorAll("select[data-f]").forEach(s=>s.onchange=async()=>{
@@ -206,7 +231,7 @@ function vComp(){
     s.disabled=false;
   });
 }
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{vista=b.dataset.v;render()});
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{vista=b.dataset.v;try{history.replaceState(null,"","#"+vista)}catch(_){}render()});
 
 /* ---------- clave ---------- */
 function olvidarClave(){clave=null;try{localStorage.removeItem("cr_clave")}catch(e){}}
@@ -247,7 +272,7 @@ function detalle(fila){
 }
 
 /* ---------- registrar ---------- */
-$("fab").onclick=async()=>{const k=await pedirClave();if(k)form("Gasto")};
+$("fab").onclick=async()=>{const k=await pedirClave();if(k)elegirRegistro()};
 function opts(list,sel){return list.map(x=>`<option ${x===sel?"selected":""}>${esc(x)}</option>`).join("")}
 let F={};
 function form(tipo){
@@ -315,7 +340,7 @@ async function guardar(){
   if(!m.desc) return err("Escriba una descripción corta.");
   if(t==="Traslado"&&m.cuenta===m.destino) return err("Elija dos cuentas distintas.");
   if(t==="Traslado"&&monedaCuenta(m.cuenta)!==monedaCuenta(m.destino)) return err("Entre colones y dólares, registre un gasto en una cuenta y un ingreso en la otra.");
-  if(m.cat==="Aporte de Bryan") m.mesAporte=$("fMes").value;
+  if(m.cat==="Intereses préstamo Bryan") m.mesAporte=$("fMes").value;
   const btn=$("fs"); btn.disabled=true; btn.textContent="Guardando…";
   try{
     const archivo=await leerArchivo($("fFile")?.files[0]);
@@ -358,85 +383,94 @@ function dibujarRecibo(m,rc){
 }
 run("estado").then(e=>{E=e;if(E.hayFamilia&&cf)cargar();else pantallaClave()}).catch(e=>{$("main").innerHTML=`<div class="card"><b>No se pudo abrir Control Rogelio.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="location.reload()">Volver a intentar</button></div>`});
 
-/* ---------- AGENDA ---------- */
+/* ---------- HOY (agenda) ---------- */
 let A=null, yo=null;
 try{yo=localStorage.getItem("cr_yo")}catch(e){}
+const HERM=["Yese","Mau","Adri","Tavo","Chichi","Esteban","Bryan"];
+const esGarante=()=>!!clave||["Bryan","Yese"].includes(yo);
 const DSEM=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 const dowS=s=>new Date(s+"T12:00:00").getDay();
 const sumD=(s,n)=>{const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const fDia=s=>{const[y,m,d]=s.split("-").map(Number);return DSEM[dowS(s)]+" "+d+" "+M3[m-1]};
 const capi=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const lunesDe=s=>sumD(s,-((dowS(s)+6)%7));
+function setYo(q){yo=q;try{localStorage.setItem("cr_yo",q)}catch(_){}}
 function pedirYo(){
   if(yo) return Promise.resolve(yo);
   return new Promise(res=>{
-    const H=(A&&A.hermanos)||["Yese","Mau","Adri","Tavo","Chichi","Esteban","Bryan"];
     $("ov").innerHTML=`<div class="overlay"><form class="sheet" id="fy"><div class="sheet-h"><h2>¿Quién es usted?</h2><button type="button" class="xbtn" id="yx">×</button></div>
     <span class="sub">Se pregunta una sola vez en este teléfono, para saber quién marcó cada cosa.</span>
-    <div class="pills">${H.map(h=>`<button type="button" class="btn" data-y="${esc(h)}">${esc(h)}</button>`).join("")}</div></form></div>`;
+    <div class="chips">${((A&&A.hermanos)||HERM).map(h=>`<button type="button" class="chip" data-y="${esc(h)}">${esc(h)}</button>`).join("")}</div></form></div>`;
     $("yx").onclick=()=>{cerrar();res(null)};
-    document.querySelectorAll("[data-y]").forEach(b=>b.onclick=()=>{yo=b.dataset.y;try{localStorage.setItem("cr_yo",yo)}catch(_){}cerrar();res(yo);if(vista==="agenda")pintarAgenda()});
+    document.querySelectorAll("[data-y]").forEach(b=>b.onclick=()=>{setYo(b.dataset.y);cerrar();res(yo);render()});
   });
 }
-async function vAgenda(){
-  if(!A) $("main").innerHTML='<div class="loading">Cargando la agenda de papi…</div>'; else pintarAgenda();
-  try{A=JSON.parse(await run("getAgenda",cf));if(vista==="agenda")pintarAgenda()}
-  catch(e){if(vista==="agenda")$("main").innerHTML=`<div class="card"><b>No se pudo cargar la agenda.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="vAgenda()">Volver a intentar</button></div>`}
+async function cargarA(){A=JSON.parse(await run("getAgenda",cf));return A}
+async function vHoy(){
+  if(!A) $("main").innerHTML='<div class="loading">Cargando el día de papi…</div>'; else pintarHoy();
+  try{await cargarA();if(vista==="hoy")pintarHoy()}
+  catch(e){if(vista==="hoy"&&!A)$("main").innerHTML=`<div class="card"><b>No se pudo cargar.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="vHoy()">Volver a intentar</button></div>`}
 }
 async function accion(fn,args,okMsg){
   const q=await pedirYo(); if(!q) return;
-  try{await run(fn,cf,...args.map(a=>a==="__YO__"?q:a));toast(okMsg);await vAgenda()}catch(e){toast(e.message)}
+  try{await run(fn,cf,...args.map(a=>a==="__YO__"?q:a));toast(okMsg);await vHoy()}catch(e){toast(e.message)}
 }
-function pintarAgenda(){
+function ireneSemana(lunes,ing,h){
+  const dias=[];for(let i=0;i<7;i++)dias.push(sumD(lunes,i));
+  return `<div class="semana"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="sub">Semana del ${Number(lunes.slice(8))} ${M3[Number(lunes.slice(5,7))-1]}</span>
+    <button class="btn mini" data-rep="${lunes}">Igual que la anterior</button></div>
+    <div class="dias7">${dias.map(f=>{const x=ing[f];return `<button class="dia${x?" on":""}${f===h?" hoy":""}" data-ing="${f}">${DSEM[dowS(f)].slice(0,3)}<b>${Number(f.slice(8))}</b>${x?`<small>${esc(x.hora)}</small>`:""}</button>`}).join("")}</div></div>`;
+}
+function pintarHoy(){
   const a=A, h=a.hoy, hh=a.ahora;
   const tAct=a.turnos.find(t=>t.domingo>=h)||a.turnos[1];
   const prox=a.turnos.filter(t=>t.domingo>tAct.domingo).slice(0,6);
   const dHoy=a.dias[a.dias.length-1];
   const dosisBtn=(d,mom,campo,limite,resp)=>{
     const x=d[campo]; const tarde=d.fecha<h||hh>=limite;
-    return x?`<div class="row"><span class="n">${mom}</span><span class="v"><span class="pill ok">Dada · ${esc(x.por||"")} ${esc((x.registrado||"").slice(11))}</span></span></div>`
-      :`<div class="row"><span class="n">${mom}<span class="t">Responsable: ${esc(resp)}</span></span><span class="v"><button class="btn ${tarde?"":"primary"}" data-dosis="${mom}" data-f="${d.fecha}">${tarde?"⚠ Marcar dada":"Marcar dada"}</button></span></div>`};
+    return x?`<div class="row"><span class="n">${mom}</span><span class="v"><span class="pill ok">✔ ${esc(x.por||"")} ${esc((x.registrado||"").slice(11))}</span></span></div>`
+      :`<div class="row"><span class="n">${mom}<span class="t">Responsable: ${esc(resp)}</span></span><span class="v"><button class="btn ${tarde?"warnb":"primary"}" data-dosis="${mom.split(" ")[0]}" data-f="${d.fecha}">${tarde?"⚠ Marcar dada":"Marcar dada"}</button></span></div>`};
   const atras=a.dias.slice(0,-1).filter(d=>!d.manana||!d.noche);
   const pend=a.tareas.filter(t=>t.estado!=="Hecho"), hechas=a.tareas.filter(t=>t.estado==="Hecho");
   const limiteT=t=>t.id.startsWith("REC-")?t.fecha.slice(0,8)+"05":t.fecha;
   const citasF=a.citas.filter(c=>c.fecha>=h), citasP=a.citas.filter(c=>c.fecha<h).reverse().slice(0,3);
-  const dias14=[];for(let i=0;i<14;i++)dias14.push(sumD(h,i));
-  const ing=Object.fromEntries(a.ingrid.map(x=>[x.fecha,x]));
+  const ing=Object.fromEntries(a.irene.map(x=>[x.fecha,x]));
+  const lun=lunesDe(h);
+  const ireneHoy=ing[h], porPagar=a.irene.filter(x=>x.fecha<=h&&x.estado!=="Pagado");
+  const proxCita=citasF[0];
   $("main").innerHTML=`
-  <section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2>Agenda de papi</h2>
-    <button class="btn" id="yoBtn" style="padding:5px 10px;font-size:.8rem">${yo?"Soy "+esc(yo):"¿Quién es usted?"}</button></div>
-    <span class="sub">${capi(fDia(h))}</span></section>
+  <section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><h2>${capi(fDia(h))}</h2>
+    <span class="sub">${ireneHoy?`Hoy viene Doña Irene (${esc(ireneHoy.hora)}–${esc(ireneHoy.horaFin)})`:"Hoy no viene Doña Irene"}${proxCita?` · Próxima cita: ${fDia(proxCita.fecha)}`:""}</span></div>
+    <button class="btn mini" id="yoBtn">${yo?esc(yo):"¿Quién es?"}</button></div></section>
 
-  <section class="card"><h2>Pastillas de hoy</h2>
+  <section class="card"><h2>Pastillas</h2>
     ${dosisBtn(dHoy,"Mañana","manana","10:00",dHoy.respManana)}
     ${dosisBtn(dHoy,"Noche","noche","22:00",dHoy.respNoche)}
     ${atras.length?`<span class="sub" style="margin-top:6px">Días anteriores sin marcar:</span>${atras.map(d=>(d.manana?"":dosisBtn(d,"Mañana del "+fDia(d.fecha),"manana","00:00",d.respManana))+(d.noche?"":dosisBtn(d,"Noche del "+fDia(d.fecha),"noche","00:00",d.respNoche))).join("")}`:""}
   </section>
 
   <section class="card"><h2>Turno de esta semana</h2>
-    <div class="row"><span class="n" style="font-size:1.15rem;font-weight:700">${esc(tAct.hermano)}</span><span class="v">${capi(fDia(tAct.dia))}</span></div>
-    <div class="row"><span class="n">Pastillero de la semana</span><span class="v">${tAct.pastillero?`<span class="pill ok">Listo · ${esc(tAct.pastilleroPor)}</span>`:`<button class="btn primary" id="pastBtn">Marcar listo</button>`}</span></div>
+    <div class="row"><span class="n big2">${esc(tAct.hermano)}</span><span class="v">${capi(fDia(tAct.dia))}</span></div>
+    <div class="row"><span class="n">Pastillero de la semana</span><span class="v">${tAct.pastillero?`<span class="pill ok">✔ ${esc(tAct.pastilleroPor)}</span>`:`<button class="btn primary" id="pastBtn">Marcar listo</button>`}</span></div>
     ${tAct.nota?`<div class="sub" style="white-space:pre-wrap">📝 ${esc(tAct.nota)}</div>`:""}
-    <div class="pills"><button class="btn" id="tDia">Cambiar día</button><button class="btn" id="tHer">Cambiar con otro hermano</button><button class="btn" id="tNota">${tAct.nota?"Cambiar nota":"Nota del turno"}</button></div>
-    <span class="sub" style="margin-top:6px">Próximos turnos</span>
-    ${prox.map(t=>`<div class="row"><span class="n">${esc(t.hermano)}${t.cambiado?' <span class="pill warn">cambiado</span>':""}</span><span class="v sub">${fDia(t.dia)}</span></div>`).join("")}
+    <div class="pills"><button class="btn mini" id="tDia">Cambiar día</button><button class="btn mini" id="tHer">Cambiar con otro hermano</button><button class="btn mini" id="tNota">${tAct.nota?"Cambiar nota":"Nota del turno"}</button></div>
+    <details><summary class="sub">Próximos turnos</summary>
+    ${prox.map(t=>`<div class="row"><span class="n">${esc(t.hermano)}${t.cambiado?' <span class="pill warn">cambiado</span>':""}</span><span class="v sub">${fDia(t.dia)}</span></div>`).join("")}</details>
   </section>
 
-  <section class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Tareas</h2><button class="btn" id="addTarea">+ Tarea</button></div>
-    ${pend.length?pend.map(t=>{const at=h>limiteT(t);return `<div class="row"><span class="n">${esc(t.titulo)}<span class="t">${esc(t.responsable||"Sin responsable")} · ${t.id.startsWith("REC-")?"del 1 al 5":fDia(t.fecha)}${t.notas&&!t.id.startsWith("REC-")?" · "+esc(t.notas):""}</span></span><span class="v">${at?'<span class="pill danger">Atrasada</span> ':""}<button class="btn" data-hecho="${t.id}">Hecho</button></span></div>`}).join(""):'<span class="sub">No hay tareas pendientes.</span>'}
+  <section class="card"><div class="cab"><h2>Tareas</h2><button class="btn mini" id="addTarea">+ Tarea</button></div>
+    ${pend.length?pend.map(t=>{const at=h>limiteT(t);return `<div class="row"><span class="n">${esc(t.titulo)}<span class="t">${esc(t.responsable||"Sin responsable")} · ${t.id.startsWith("REC-")?"del 1 al 5":fDia(t.fecha)}${t.notas&&!t.id.startsWith("REC-")?" · "+esc(t.notas):""}</span></span><span class="v">${at?'<span class="pill danger">Atrasada</span> ':""}<button class="btn mini" data-hecho="${t.id}">Hecho</button></span></div>`}).join(""):'<span class="sub">No hay tareas pendientes.</span>'}
     ${hechas.length?`<details><summary class="sub">Hechas recientemente (${hechas.length})</summary>${hechas.map(t=>`<div class="row"><span class="n" style="text-decoration:line-through;color:var(--muted)">${esc(t.titulo)}</span><span class="v sub">${esc(t.hechoPor)} · ${esc((t.hechoEl||"").slice(5,10))}</span></div>`).join("")}</details>`:""}
   </section>
 
-  <section class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Citas médicas</h2><button class="btn" id="addCita">+ Cita</button></div>
+  <section class="card"><div class="cab"><h2>Citas médicas</h2><button class="btn mini" id="addCita">+ Cita</button></div>
     ${citasF.length?citasF.map(c=>`<div class="row" data-cita="${c.id}" style="cursor:pointer"><span class="n">${esc(c.titulo)}<span class="t">${esc(c.lugar||"")}${c.responsable?" · acompaña "+esc(c.responsable):""}</span></span><span class="v"><b>${capi(fDia(c.fecha))}</b><br><span class="sub">${esc(c.hora||"")}</span></span></div>`).join(""):'<span class="sub">No hay citas próximas.</span>'}
     ${citasP.length?`<details><summary class="sub">Citas pasadas</summary>${citasP.map(c=>`<div class="row" data-cita="${c.id}"><span class="n">${esc(c.titulo)}</span><span class="v sub">${fDia(c.fecha)}</span></div>`).join("")}</details>`:""}
   </section>
 
-  <section class="card"><h2>Doña Ingrid</h2><span class="sub">Toque un día para marcar si viene o no. Lo coordina ${esc((a.responsables["Días de Doña Ingrid"]||{}).semana||"Bryan")}.</span>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">${dias14.map(f=>{const x=ing[f];return `<button class="btn" data-ing="${f}" style="padding:6px 2px;font-size:.75rem;${x?"background:var(--accent);color:#fff;border-color:var(--accent)":""}">${DSEM[dowS(f)].slice(0,3)}<br><b>${Number(f.slice(8))}</b>${x?`<br>${esc(x.hora)}`:""}</button>`}).join("")}</div>
-  </section>
-  <section class="card"><h2>Responsables</h2><span class="sub">Toque un nombre para cambiarlo. El calendario se actualiza solo.</span>
-    <div class="row"><span class="n sub">Tarea</span><span class="v sub">Lun–jue · Vie–dom</span></div>
-    ${Object.entries(a.responsables).map(([t,r])=>`<div class="row"><span class="n">${esc(t)}</span><span class="v"><button class="btn" style="padding:4px 9px" data-resp="${esc(t)}" data-g="semana">${esc(r.semana||"—")}</button> <button class="btn" style="padding:4px 9px" data-resp="${esc(t)}" data-g="finde">${esc(r.finde||"—")}</button></span></div>`).join("")}
+  <section class="card"><div class="cab"><h2>Doña Irene</h2>${esGarante()&&porPagar.length?`<button class="btn primary mini" id="pagarIr">Pagar ${porPagar.length} día${porPagar.length>1?"s":""}</button>`:""}</div>
+    <span class="sub">Toque un día para marcar si viene o no.</span>
+    ${ireneSemana(lun,ing,h)}${ireneSemana(sumD(lun,7),ing,h)}
   </section>`;
   $("yoBtn").onclick=()=>{yo=null;try{localStorage.removeItem("cr_yo")}catch(_){}pedirYo()};
   document.querySelectorAll("[data-dosis]").forEach(b=>b.onclick=()=>{b.disabled=true;accion("marcarDosis",[b.dataset.dosis,"__YO__",b.dataset.f],"Dosis marcada").finally(()=>b.disabled=false)});
@@ -445,18 +479,19 @@ function pintarAgenda(){
   $("addTarea").onclick=()=>formItem("Tarea");$("addCita").onclick=()=>formItem("Cita");
   document.querySelectorAll("[data-hecho]").forEach(b=>b.onclick=()=>{b.disabled=true;accion("completarItem",[b.dataset.hecho,"__YO__",true],"Tarea marcada como hecha")});
   document.querySelectorAll("[data-cita]").forEach(r=>r.onclick=()=>formItem("Cita",a.citas.find(c=>c.id===r.dataset.cita)));
-  document.querySelectorAll("[data-resp]").forEach(b=>b.onclick=()=>{const t=b.dataset.resp,g=b.dataset.g;
-    hoja("Responsable",`<span class="sub">${esc(t)} · ${g==="finde"?"viernes a domingo":"lunes a jueves"}</span><div class="field"><select id="rS">${opts(A.hermanos,b.textContent)}</select></div>`,
-      async q=>{await run("setResponsable",cf,t,g,$("rS").value,q);toast("Responsable cambiado")})});
-  document.querySelectorAll("[data-ing]").forEach(b=>b.onclick=()=>formIngrid(b.dataset.ing,ing[b.dataset.ing]));
+  document.querySelectorAll("[data-ing]").forEach(b=>b.onclick=()=>formIrene(b.dataset.ing,ing[b.dataset.ing]));
+  document.querySelectorAll("[data-rep]").forEach(b=>b.onclick=async()=>{b.disabled=true;const q=await pedirYo();if(!q){b.disabled=false;return}
+    try{const n=await run("ireneRepetir",cf,b.dataset.rep,q);toast(n?`Listo: ${n} día${n>1?"s":""} copiado${n>1?"s":""}`:"La semana anterior no tenía días para copiar");await vHoy()}catch(e){toast(e.message);b.disabled=false}});
+  if($("pagarIr"))$("pagarIr").onclick=async()=>{const k=await pedirClave();if(k)pagarIrene()};
 }
+async function refrescar(){if(vista==="hoy")return vHoy();await cargarA();if(vista==="mas")pintarResp()}
 function hoja(titulo,cuerpo,onOk,extraBtn){
   if(!yo){pedirYo().then(q=>{if(q)hoja(titulo,cuerpo,onOk,extraBtn)});return}
   $("ov").innerHTML=`<div class="overlay"><form class="sheet" id="fa"><div class="sheet-h"><h2>${titulo}</h2><button type="button" class="xbtn" id="ax">×</button></div>${cuerpo}
   <div class="err" id="aerr"></div><div class="pills">${extraBtn||""}<button class="btn primary" style="flex:1">Guardar</button></div></form></div>`;
   $("ax").onclick=cerrar;
   $("fa").onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector(".btn.primary");b.disabled=true;
-    try{await onOk(yo);cerrar();await vAgenda()}catch(err){b.disabled=false;$("aerr").textContent=err.message}};
+    try{await onOk(yo);cerrar();await refrescar()}catch(err){b.disabled=false;$("aerr").textContent=err.message}};
 }
 function formTurno(t,que){
   if(!yo){pedirYo().then(q=>{if(q)formTurno(t,que)});return}
@@ -465,8 +500,8 @@ function formTurno(t,que){
     hoja("Cambiar el día del turno",`<span class="sub">El turno de ${esc(t.hermano)} puede ser viernes, sábado o domingo de esa semana.</span><div class="field"><label for="tdS">Día</label><select id="tdS">${dias.map(d=>`<option value="${d}" ${d===t.dia?"selected":""}>${capi(fDia(d))}</option>`).join("")}</select></div>`,
       async q=>{await run("turnoAccion",cf,t.domingo,{dia:$("tdS").value},q);toast("Día cambiado")});}
   if(que==="hermano"){
-    hoja("Cambiar el turno",`<span class="sub">Si cambia con otro hermano, acuérdense de cambiar también el turno de ese hermano.</span><div class="field"><label for="thS">¿Quién hace el turno del ${fDia(t.dia)}?</label><select id="thS">${opts(H,t.hermano)}</select></div>`,
-      async q=>{await run("turnoAccion",cf,t.domingo,{hermano:$("thS").value},q);toast("Turno cambiado")});}
+    hoja("Cambiar turno",`<span class="sub">Se intercambian: el hermano que elija hace este turno (${fDia(t.dia)}) y ${esc(t.hermano)} hace el próximo turno de ese hermano.</span><div class="field"><label for="thS">¿Con quién cambia ${esc(t.hermano)}?</label><select id="thS">${opts(H.filter(x=>x!==t.hermano))}</select></div>`,
+      async q=>{const r=await run("intercambiarTurno",cf,t.domingo,$("thS").value,q);toast(`Listo: ${r.hermanoB} el ${fDia(r.a)} y ${r.hermanoA} el ${fDia(r.b)}`)});}
   if(que==="nota"){
     hoja("Nota del turno",`<span class="sub">Cómo estuvo papi, si comió bien, si pasó algo… Así el siguiente sabe cómo lo deja.</span><div class="field"><textarea id="tnT" rows="5" maxlength="900">${esc((t.nota||"").replace(/ — [^—]*$/,""))}</textarea></div>`,
       async q=>{await run("turnoAccion",cf,t.domingo,{nota:$("tnT").value.trim()},q);toast("Nota guardada")});}
@@ -487,16 +522,155 @@ function formItem(tipo,it){
     await run("guardarItem",cf,{id:it.id||"",tipo,titulo:$("iT").value.trim(),fecha:$("iF").value,hora:$("iH")?$("iH").value:"",lugar:$("iL")?$("iL").value.trim():"",responsable:$("iR").value,notas:$("iN").value.trim()},q);
     toast(tipo==="Cita"?"Cita guardada":"Tarea agregada")},
     it.id?`<button type="button" class="btn" id="iDel">Borrar</button>`:"");
-  if($("iDel"))$("iDel").onclick=async()=>{if(!confirm("¿Borrar esta cita?"))return;try{await run("borrarItem",cf,it.id);cerrar();toast("Cita borrada");await vAgenda()}catch(e){$("aerr").textContent=e.message}};
+  if($("iDel"))$("iDel").onclick=async()=>{if(!confirm("¿Borrar esta cita?"))return;try{await run("borrarItem",cf,it.id);cerrar();toast("Cita borrada");await vHoy()}catch(e){$("aerr").textContent=e.message}};
 }
-function formIngrid(f,x){
-  if(!yo){pedirYo().then(q=>{if(q)formIngrid(f,x)});return}
+function formIrene(f,x){
+  if(!yo){pedirYo().then(q=>{if(q)formIrene(f,x)});return}
+  if(x&&x.estado==="Pagado"){toast("Ese día ya se le pagó a Doña Irene.");return}
   let def={d:"08:00",h:"14:00"};try{def=JSON.parse(localStorage.getItem("cr_ing"))||def}catch(_){}
-  hoja("Doña Ingrid – "+fDia(f),`<span class="sub">${x?"Está marcado que viene este día.":"¿Viene este día?"}</span>
+  hoja("Doña Irene – "+fDia(f),`<span class="sub">${x?"Está marcado que viene este día.":"¿Viene este día?"}</span>
     <div class="g2"><div class="field"><label for="gD">Desde</label><input type="time" id="gD" value="${x?x.hora:def.d}"></div><div class="field"><label for="gH">Hasta</label><input type="time" id="gH" value="${x?x.horaFin:def.h}"></div></div>`,
-    async q=>{try{localStorage.setItem("cr_ing",JSON.stringify({d:$("gD").value,h:$("gH").value}))}catch(_){}await run("ingridDia",cf,f,true,$("gD").value,$("gH").value,q);toast("Día de Doña Ingrid guardado")},
+    async q=>{try{localStorage.setItem("cr_ing",JSON.stringify({d:$("gD").value,h:$("gH").value}))}catch(_){}await run("ireneDia",cf,f,true,$("gD").value,$("gH").value,q);toast("Día de Doña Irene guardado")},
     x?`<button type="button" class="btn" id="gNo">No viene</button>`:"");
-  if($("gNo"))$("gNo").onclick=async()=>{try{await run("ingridDia",cf,f,false,"","",yo||"");cerrar();toast("Día quitado");await vAgenda()}catch(e){$("aerr").textContent=e.message}};
+  if($("gNo"))$("gNo").onclick=async()=>{try{await run("ireneDia",cf,f,false,"","",yo||"");cerrar();toast("Día quitado");await vHoy()}catch(e){$("aerr").textContent=e.message}};
+}
+
+/* ---------- REGISTRO RÁPIDO ---------- */
+function elegirRegistro(){
+  const pIr=(A&&A.irene||[]).filter(x=>x.fecha<=(A?A.hoy:hoy())&&x.estado!=="Pagado").length;
+  $("ov").innerHTML=`<div class="overlay"><div class="sheet"><div class="sheet-h"><h2>¿Qué va a registrar?</h2><button class="xbtn" id="rx">×</button></div>
+    <button class="btn opcion" id="rG"><b>Gasto</b><span>Algo que se pagó para papi</span></button>
+    <button class="btn opcion" id="rI"><b>Ingreso</b><span>Cuota de la venta, intereses, pensión…</span></button>
+    <button class="btn opcion" id="rC"><b>Pago a Doña Irene</b><span>${pIr?pIr+" día"+(pIr>1?"s":"")+" sin pagar · ya viene todo cargado":"Con recibo firmado"}</span></button>
+    <button class="btn opcion" id="rT"><b>Traslado entre cuentas</b><span>Pasar plata de una cuenta de papi a otra</span></button>
+  </div></div>`;
+  $("rx").onclick=cerrar;$("rG").onclick=()=>rapido("Gasto");$("rI").onclick=()=>rapido("Ingreso");$("rC").onclick=()=>pagarIrene();$("rT").onclick=()=>form("Traslado");
+}
+const CTA_DEF={"Cuota venta Tarrazú":"MultiMoney (inversión)"};
+function mesPendiente(){const p=(D.aporte||[]).find(x=>x.estado==="Pendiente"||x.estado==="Este mes");return p?p.mes.slice(0,7):hoy().slice(0,7)}
+function rapido(tipo){
+  const L=D.listas, cats=tipo==="Gasto"?L.categorias.slice(0,12).filter(c=>c!=="Cuidadora"):L.categorias.slice(12);
+  const cuentas=D.cuentas.filter(c=>c.disponible!=="No").map(c=>c.nombre);
+  const H=(A&&A.hermanos)||HERM;
+  $("ov").innerHTML=`<div class="overlay"><form class="sheet" id="fq" novalidate><div class="sheet-h"><h2>${tipo==="Gasto"?"Nuevo gasto":"Nuevo ingreso"}</h2><button type="button" class="xbtn" id="qx">×</button></div>
+  <div class="field"><label for="qM">Monto</label><input id="qM" class="monto" inputmode="decimal" placeholder="₡0" autocomplete="off"></div>
+  <div class="field"><span class="lab">${tipo==="Gasto"?"¿En qué?":"¿Qué es?"}</span><div class="chips" id="qCat">${cats.map(c=>`<button type="button" class="chip" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div></div>
+  <div class="field"><label for="qD">${tipo==="Gasto"?"Detalle (opcional)":"Detalle (opcional)"}</label><input id="qD" maxlength="140" placeholder="${tipo==="Gasto"?"Ej.: Pañales y crema":"Ej.: Cuota de noviembre"}"></div>
+  <div class="field" id="wMesQ" hidden><label for="qMes">¿De qué mes son los intereses?</label><input type="month" id="qMes" value="${mesPendiente()}"></div>
+  ${tipo==="Gasto"?`<div class="field"><span class="lab">¿Con qué plata?</span><div class="chips" id="qPl">
+      <button type="button" class="chip" data-p="papi" aria-pressed="true">De papi</button><button type="button" class="chip" data-p="yo">Mía${yo?" ("+esc(yo)+")":""}</button><button type="button" class="chip" data-p="otro">De otro hermano</button></div></div>
+    <div class="field" id="wOtro" hidden><label for="qOtro">¿Quién lo pagó?</label><select id="qOtro">${opts(H)}</select></div>`:""}
+  <div class="field" id="wCta"><label for="qCta">${tipo==="Gasto"?"Salió de":"Entró a"}</label><select id="qCta">${opts(cuentas,"BAC Credomatic (colones)")}</select></div>
+  <details><summary class="sub">Más opciones (fecha, comprobante, nota)</summary><div style="display:grid;gap:10px;margin-top:10px">
+    <div class="g2"><div class="field"><label for="qF">Fecha</label><input type="date" id="qF" value="${hoy()}"></div>
+    <div class="field"><label for="qComp">Comprobante</label><select id="qComp">${opts(L.comprobante,tipo==="Gasto"?"En correo":"No")}</select></div></div>
+    <div class="field"><label for="qRef">N.º factura o referencia</label><input id="qRef" maxlength="80"></div>
+    ${tipo==="Gasto"?`<label class="check"><input type="checkbox" id="qX"><span><b>Gasto extraordinario</b> (grande o fuera de lo normal: hay que avisar al juzgado).</span></label>`:""}
+    <div class="field"><label for="qN">Nota</label><textarea id="qN" rows="2" maxlength="500"></textarea></div>
+    <div class="field"><span class="lab">Foto o PDF (opcional)</span><input type="file" id="qFile" accept="image/*,application/pdf"></div>
+  </div></details>
+  <div class="err" id="qErr"></div>
+  <button class="btn primary grande" id="qS">Guardar</button></form></div>`;
+  let cat="", pl="papi";
+  $("qx").onclick=cerrar;
+  document.querySelectorAll("#qCat .chip").forEach(b=>b.onclick=()=>{cat=b.dataset.c;document.querySelectorAll("#qCat .chip").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    $("wMesQ").hidden=cat!=="Intereses préstamo Bryan";if(tipo==="Ingreso"&&$("qCta"))$("qCta").value=CTA_DEF[cat]||"BAC Credomatic (colones)"});
+  if($("qPl"))document.querySelectorAll("#qPl .chip").forEach(b=>b.onclick=()=>{pl=b.dataset.p;document.querySelectorAll("#qPl .chip").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    $("wOtro").hidden=pl!=="otro";$("wCta").hidden=pl!=="papi"});
+  setTimeout(()=>$("qM").focus(),50);
+  $("fq").onsubmit=async e=>{e.preventDefault();const err=t=>$("qErr").textContent=t;err("");
+    const cuenta=$("wCta").hidden?"":$("qCta").value, usdA=monedaCuenta(cuenta)==="USD";
+    const monto=parseMonto($("qM").value,usdA);
+    if(!(monto>0))return err("Escriba el monto.");if(!cat)return err(tipo==="Gasto"?"Toque en qué fue el gasto.":"Toque qué tipo de ingreso es.");
+    const fam=tipo==="Gasto"&&pl!=="papi";
+    const det=$("qD").value.trim();
+    const m={fecha:$("qF").value||hoy(),tipo,desc:det||(cat==="Intereses préstamo Bryan"?"Intereses de Bryan – "+MES[Number($("qMes").value.slice(5,7))-1]:cat),monto,cat,cuenta:fam?"":cuenta,destino:"",
+      dinero:tipo==="Gasto"?(fam?"Propio de familiar":"De papi"):"",persona:fam?(pl==="yo"?(yo||""):$("qOtro").value):(yo||""),
+      comp:$("qComp").value,ref:$("qRef").value.trim(),extra:!!($("qX")&&$("qX").checked),nota:$("qN").value.trim()};
+    if(cat==="Intereses préstamo Bryan")m.mesAporte=$("qMes").value;
+    const b=$("qS");b.disabled=true;b.textContent="Guardando…";
+    try{const archivo=await leerArchivo($("qFile").files[0]);await run("guardarMovimiento",clave,m,archivo,null);cerrar();toast(tipo==="Gasto"?"Gasto guardado":"Ingreso guardado");await cargar()}
+    catch(e2){b.disabled=false;b.textContent="Guardar";err(e2.message||String(e2));if(/Clave/.test(e2.message||""))olvidarClave()}};
+}
+async function pagarIrene(){
+  $("ov").innerHTML=`<div class="overlay"><div class="sheet"><div class="loading" style="padding:30px">Buscando los días de Doña Irene…</div></div></div>`;
+  try{await cargarA()}catch(e){toast(e.message);cerrar();return}
+  const dias=A.irene.filter(x=>x.fecha<=A.hoy&&x.estado!=="Pagado").sort((a,b)=>a.fecha<b.fecha?-1:1);
+  const cu=D.cuidadora||{}; const tarifa=Number(cu.tarifa)||0;
+  const cuentas=D.cuentas.filter(c=>c.disponible!=="No"&&c.moneda!=="USD").map(c=>c.nombre);
+  const H=(A&&A.hermanos)||HERM;
+  $("ov").innerHTML=`<div class="overlay"><form class="sheet" id="fp" novalidate><div class="sheet-h"><h2>Pago a Doña Irene</h2><button type="button" class="xbtn" id="px">×</button></div>
+  ${dias.length?`<div class="field"><span class="lab">Días que vino y no se le han pagado</span>${dias.map(d=>`<label class="check"><input type="checkbox" data-id="${d.id}" data-f="${d.fecha}" checked><span>${capi(fDia(d.fecha))} · ${esc(d.hora)}–${esc(d.horaFin)}</span></label>`).join("")}</div>`
+    :`<span class="sub">No hay días marcados sin pagar en la sección Hoy. Puede escribir el periodo a mano.</span>
+     <div class="g2"><div class="field"><label for="pDe">Del</label><input type="date" id="pDe"></div><div class="field"><label for="pAl">Al</label><input type="date" id="pAl" value="${hoy()}"></div></div>
+     <div class="field"><label for="pN">Días que vino</label><input id="pN" inputmode="numeric"></div>`}
+  <div class="g2"><div class="field"><label for="pT">Pago por día</label><input id="pT" inputmode="decimal" value="${tarifa||""}" placeholder="₡"></div>
+  <div class="field"><label for="pM">Total</label><input id="pM" class="monto" inputmode="decimal"></div></div>
+  <div class="g2"><div class="field"><label for="pFo">Forma de pago</label><select id="pFo">${opts(["SINPE Móvil","Efectivo","Transferencia"])}</select></div>
+  <div class="field"><label for="pPl">¿Con qué plata?</label><select id="pPl"><option value="">De papi</option>${H.map(h=>`<option value="${esc(h)}">De ${esc(h)}</option>`).join("")}</select></div></div>
+  <div class="field" id="wPc"><label for="pC">Sale de</label><select id="pC">${opts(cuentas,"BAC Credomatic (colones)")}</select></div>
+  <details><summary class="sub">Datos del recibo (${esc(cu.nombre||"Irene")}${cu.cedula?" · "+esc(cu.cedula):""})</summary><div class="g2" style="margin-top:8px"><div class="field"><label for="cNom">Nombre</label><input id="cNom" value="${esc(cu.nombre||"Irene")}"></div><div class="field"><label for="cCed">Cédula</label><input id="cCed" value="${esc(cu.cedula||"")}"></div></div></details>
+  <span class="lab">Firma de Doña Irene (con el dedo)</span><canvas class="sig" id="sig"></canvas>
+  <div style="display:flex;justify-content:space-between;align-items:center"><span class="sub" id="sigH">Sin firma no se genera el recibo.</span><button type="button" class="btn mini" id="sigC">Borrar firma</button></div>
+  <div class="err" id="pErr"></div>
+  <button class="btn primary grande" id="pS">Guardar y enviar recibo</button></form></div>`;
+  F={tipo:"Gasto",sigDirty:false}; initSig();
+  $("px").onclick=cerrar;
+  const nDias=()=>dias.length?document.querySelectorAll("#fp [data-id]:checked").length:(Number($("pN").value)||0);
+  const calc=()=>{const t=parseMonto($("pT").value);if(t>0)$("pM").value=(t*nDias()).toLocaleString("es-CR")};
+  calc();["pT","pN"].forEach(i=>$(i)&&($(i).oninput=calc));document.querySelectorAll("#fp [data-id]").forEach(x=>x.onchange=calc);
+  $("pPl").onchange=()=>$("wPc").hidden=!!$("pPl").value;
+  $("fp").onsubmit=async e=>{e.preventDefault();const err=t=>$("pErr").textContent=t;err("");
+    const sel=[...document.querySelectorAll("#fp [data-id]:checked")];
+    const n=nDias(), monto=parseMonto($("pM").value), quien=$("pPl").value;
+    if(!n)return err("Marque al menos un día.");if(!(monto>0))return err("Escriba el pago por día o el total.");
+    if(!F.sigDirty)return err("Falta la firma de Doña Irene.");
+    const fechas=sel.map(x=>x.dataset.f);
+    const desde=dias.length?fechas[0]:$("pDe").value, hasta=dias.length?fechas[fechas.length-1]:$("pAl").value;
+    const m={fecha:hoy(),tipo:"Gasto",desc:`Cuido de Doña Irene – ${n} día${n>1?"s":""}`,monto,cat:"Cuidadora",cuenta:quien?"":$("pC").value,destino:"",
+      dinero:quien?"Propio de familiar":"De papi",persona:quien,comp:"",ref:"",extra:false,nota:"",ireneIds:sel.map(x=>x.dataset.id)};
+    const b=$("pS");b.disabled=true;b.textContent="Guardando…";
+    try{const numero=await run("siguienteRecibo");
+      const rc={numero,nombre:$("cNom").value.trim()||"Irene",cedula:$("cCed").value.trim(),desde,hasta,dias:String(n),forma:$("pFo").value,tarifa:Math.round(monto/n)};
+      rc.b64=dibujarRecibo(m,rc).toDataURL("image/png").split(",")[1];
+      const r=await run("guardarMovimiento",clave,m,null,rc);
+      cerrar();toast(`Pago guardado. Recibo N.° ${String(r.recibo).padStart(4,"0")} enviado al correo.`);A=null;await cargar()}
+    catch(e2){b.disabled=false;b.textContent="Guardar y enviar recibo";err(e2.message||String(e2));if(/Clave/.test(e2.message||""))olvidarClave()}};
+}
+
+/* ---------- DINERO y MÁS ---------- */
+function vDinero(){
+  $("main").innerHTML=`<div class="tabs"><button data-s="resumen" aria-pressed="${sub==="resumen"}">Resumen</button><button data-s="movs" aria-pressed="${sub==="movs"}">Movimientos</button></div><div id="dsub"></div>`;
+  document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{sub=b.dataset.s;vDinero()});
+  (sub==="movs"?vMovs:vInicio)();
+}
+let instalar=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();instalar=e});
+async function vMas(){
+  $("main").innerHTML=`<div style="display:grid;gap:18px">
+  <section class="card"><h2>Su teléfono</h2>
+    <div class="row"><span class="n">Usted es<span class="t">Para saber quién marca cada cosa</span></span><span class="v"><button class="btn mini" id="mYo">${yo?esc(yo):"Elegir"}</button></span></div>
+    <div class="row"><span class="n">Tener Control Rogelio como aplicación<span class="t" id="mInsT">${instalar?"Se agrega un ícono en la pantalla de inicio.":/iPhone|iPad/.test(navigator.userAgent)?"En Safari: botón Compartir → «Agregar a inicio».":"En Chrome: menú ⋮ → «Agregar a la pantalla principal» o «Instalar aplicación»."}</span></span><span class="v">${instalar?'<button class="btn primary mini" id="mIns">Instalar</button>':""}</span></div>
+    ${clave?`<div class="row"><span class="n">Clave de garantes guardada<span class="t">Puede registrar gastos e ingresos</span></span><span class="v"><button class="btn mini" id="mOlv">Olvidar</button></span></div>`:""}
+  </section>
+  <div id="mApor"></div>
+  <div id="mComp"></div>
+  <section class="card" id="mResp"><h2>Responsables</h2><span class="sub">Cargando…</span></section>
+  </div>`;
+  $("mYo").onclick=()=>{yo=null;try{localStorage.removeItem("cr_yo")}catch(_){}pedirYo()};
+  if($("mIns"))$("mIns").onclick=async()=>{instalar.prompt();await instalar.userChoice;instalar=null;vMas()};
+  if($("mOlv"))$("mOlv").onclick=()=>{olvidarClave();toast("Clave olvidada en este teléfono");render()};
+  vAporte();vComp();
+  try{if(!A)await cargarA();pintarResp()}catch(e){$("mResp").innerHTML=`<h2>Responsables</h2><span class="err">${esc(e.message)}</span>`}
+}
+function pintarResp(){
+  if(!$("mResp"))return;
+  $("mResp").innerHTML=`<h2>Responsables</h2><span class="sub">Toque un nombre para cambiarlo. El calendario se actualiza solo.</span>
+    <div class="row"><span class="n sub">Tarea</span><span class="v sub">Lun–jue · Vie–dom</span></div>
+    ${Object.entries(A.responsables).map(([t,r])=>`<div class="row"><span class="n">${esc(t)}</span><span class="v"><button class="btn mini" data-resp="${esc(t)}" data-g="semana">${esc(r.semana||"—")}</button> <button class="btn mini" data-resp="${esc(t)}" data-g="finde">${esc(r.finde||"—")}</button></span></div>`).join("")}`;
+  document.querySelectorAll("[data-resp]").forEach(b=>b.onclick=()=>{const t=b.dataset.resp,g=b.dataset.g;
+    hoja("Responsable",`<span class="sub">${esc(t)} · ${g==="finde"?"viernes a domingo":"lunes a jueves"}</span><div class="field"><select id="rS">${opts(A.hermanos,b.textContent)}</select></div>`,
+      async q=>{await run("setResponsable",cf,t,g,$("rS").value,q);toast("Responsable cambiado")})});
 }
 
 </script>
