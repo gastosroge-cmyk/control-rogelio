@@ -98,6 +98,7 @@ input.monto{font-size:1.5rem;font-weight:700;padding:10px 12px}
 .dia.on{background:var(--accent);border-color:var(--accent);color:#e6f2f0}.dia.on b{color:#fff}
 .dia.hoy{outline:2px solid var(--gold);outline-offset:1px}
 details summary{cursor:pointer}
+.sync{position:fixed;top:10px;right:10px;z-index:30;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:.75rem;font-weight:600;padding:4px 10px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 </style>
 </head>
 <body>
@@ -113,6 +114,7 @@ details summary{cursor:pointer}
   <main id="main"><div class="loading">Cargando las cuentas de papi…</div></main>
 </div>
 <button class="btn primary fab" id="fab" hidden>+ Registrar</button>
+<div id="sync" class="sync" hidden>Actualizando…</div>
 <nav id="nav" hidden>
   <button data-v="hoy" aria-current="true">Hoy</button>
   <button data-v="dinero">Dinero</button>
@@ -139,8 +141,12 @@ function toast(t){const e=$("toast");e.textContent=t;e.hidden=false;clearTimeout
 const API="https://script.google.com/macros/s/AKfycbzmDNt2YFvmCCYNI9tcYv8jPJZ2swykoa_VQ7HX8oZRVj97DcoWY1yNu55aavVORFTG4A/exec";
 function run(fn,...args){const c=new AbortController();const t=setTimeout(()=>c.abort(),90000);return fetch(API,{method:"POST",body:JSON.stringify({fn,args}),headers:{"Content-Type":"text/plain;charset=utf-8"},credentials:"omit",signal:c.signal}).then(r=>r.json()).then(j=>{clearTimeout(t);if(!j.ok)throw new Error(j.error);return j.data}).catch(e=>{clearTimeout(t);if(e.name==="AbortError")throw new Error("El servidor no respondió. Revise el internet e intente de nuevo.");if(e instanceof TypeError)throw new Error("No hay conexión con el servidor. Revise el internet e intente de nuevo.");throw e})}
 let E={};
-function usar(d){if(typeof d==="string")d=JSON.parse(d);if(!d||!d.res)throw new Error("Respuesta vacía del servidor.");D=d;render()}
-function cargar(){return run("getDatos",cf).then(usar).catch(e=>{const m=e.message||String(e);if(/incorrecta|familiar/.test(m)){cf=null;try{localStorage.removeItem("cr_familia")}catch(_){}pantallaClave(m);return}$("main").innerHTML=`<div class="card"><b>No se pudieron cargar los datos.</b><span class="sub">${esc(m)}</span><button class="btn" onclick="location.reload()">Volver a intentar</button></div>`})}
+function guardaC(k,v){try{localStorage.setItem(k,typeof v==="string"?v:JSON.stringify(v))}catch(_){}}
+function leeC(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(_){return null}}
+function sync(on){const x=$("sync");if(x)x.hidden=!on}
+let noRefA=false;
+function usar(d){if(typeof d==="string")d=JSON.parse(d);if(!d||!d.res)throw new Error("Respuesta vacía del servidor.");D=d;guardaC("cr_cD",d);noRefA=true;try{render()}finally{noRefA=false}}
+function cargar(){sync(true);return run("getDatos",cf).then(usar).catch(e=>{const m=e.message||String(e);if(/incorrecta|familiar/.test(m)){cf=null;D=null;A=null;try{["cr_familia","cr_cD","cr_cA"].forEach(k=>localStorage.removeItem(k))}catch(_){}run("estado").then(x=>{E=x;pantallaClave(m)}).catch(()=>pantallaClave(m));return}if(D){toast("Sin conexión: se muestran los últimos datos guardados");return}$("main").innerHTML=`<div class="card"><b>No se pudieron cargar los datos.</b><span class="sub">${esc(m)}</span><button class="btn" onclick="location.reload()">Volver a intentar</button></div>`}).finally(()=>sync(false))}
 function pantallaClave(msg){
   const conf=!E.hayFamilia; let quien=yo||"";
   $("main").innerHTML=`<form class="card" id="fcf" style="max-width:420px;margin:24px auto;width:100%">
@@ -384,7 +390,7 @@ function dibujarRecibo(m,rc){
   x.fillStyle="#777";x.font="18px Arial";x.fillText("Generado en Cuidado de papi · Exp. 24-002413-0187-FA",60,H-40);
   return c;
 }
-run("estado").then(e=>{E=e;if(E.hayFamilia&&cf)cargar();else pantallaClave()}).catch(e=>{$("main").innerHTML=`<div class="card"><b>No se pudo abrir Cuidado de papi.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="location.reload()">Volver a intentar</button></div>`});
+setTimeout(()=>{(function(){const cD=cf&&leeC("cr_cD");if(cf){E={hayFamilia:true,hayClave:true};A=leeC("cr_cA");if(cD){D=cD;noRefA=true;try{render()}finally{noRefA=false}}cargarA().then(()=>{if(vista==="hoy"&&D)pintarHoy();else if(vista==="mas"&&D)pintarResp()}).catch(()=>{});cargar();return Promise.resolve()}return Promise.resolve()})().then(()=>cf?null:run("estado").then(e=>{E=e;if(E.hayFamilia&&cf)cargar();else pantallaClave()})).catch(e=>{$("main").innerHTML=`<div class="card"><b>No se pudo abrir Cuidado de papi.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="location.reload()">Volver a intentar</button></div>`})},0);
 
 /* ---------- HOY (agenda) ---------- */
 let A=null, yo=null;
@@ -408,11 +414,13 @@ function pedirYo(){
     document.querySelectorAll("[data-y]").forEach(b=>b.onclick=()=>{setYo(b.dataset.y);cerrar();res(yo);render()});
   });
 }
-async function cargarA(){A=JSON.parse(await run("getAgenda",cf));return A}
+let pendA=null;
+function cargarA(){if(pendA)return pendA;pendA=run("getAgenda",cf).then(r=>{A=JSON.parse(r);guardaC("cr_cA",A);return A}).finally(()=>{pendA=null});return pendA}
 async function vHoy(){
   if(!A) $("main").innerHTML='<div class="loading">Cargando el día de papi…</div>'; else pintarHoy();
+  if(noRefA&&A) return;
   try{await cargarA();if(vista==="hoy")pintarHoy()}
-  catch(e){if(vista==="hoy"&&!A)$("main").innerHTML=`<div class="card"><b>No se pudo cargar.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="vHoy()">Volver a intentar</button></div>`}
+  catch(e){if(vista==="hoy"&&A)toast("Sin conexión: se muestran los últimos datos guardados");if(vista==="hoy"&&!A)$("main").innerHTML=`<div class="card"><b>No se pudo cargar.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="vHoy()">Volver a intentar</button></div>`}
 }
 async function accion(fn,args,okMsg){
   const q=await pedirYo(); if(!q) return;
