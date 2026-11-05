@@ -43,7 +43,7 @@ h1{font-size:1.6rem}h2{font-size:1.08rem}
 .mov .d{text-align:center;line-height:1.1}.mov .d b{display:block;font-family:var(--display);font-size:1.2rem}.mov .d span{font-size:.68rem;color:var(--muted);text-transform:uppercase}
 .mov .x{min-width:0;display:grid;gap:2px}.mov .x .t{font-weight:600;overflow-wrap:anywhere}.mov .x .m{font-size:.78rem;color:var(--muted)}
 .amt{font-weight:700;white-space:nowrap}.amt.in{color:var(--in)}.amt.mv{color:var(--muted)}
-nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);z-index:20}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);z-index:20}
 nav button{font:inherit;font-size:.78rem;font-weight:600;background:none;border:0;padding:12px 4px;color:var(--muted);cursor:pointer}
 nav button[aria-current="true"]{color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
 .fab{position:fixed;right:16px;bottom:66px;z-index:21;border-radius:999px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
@@ -72,6 +72,7 @@ canvas.sig{width:100%;height:150px;background:#fff;border:1px dashed #9aa;border
 dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:0;font-size:.9rem}dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}
 img.prev{width:100%;border:1px solid var(--line);border-radius:8px;background:#fff}
 [hidden]{display:none!important}
+.n .t{display:block;font-weight:400;margin-top:2px}
 </style>
 </head>
 <body>
@@ -88,6 +89,7 @@ img.prev{width:100%;border:1px solid var(--line);border-radius:8px;background:#f
   <button data-v="inicio" aria-current="true">Inicio</button>
   <button data-v="movs">Movimientos</button>
   <button data-v="aporte">Préstamo</button>
+  <button data-v="agenda">Agenda</button>
   <button data-v="comp">Compromisos</button>
 </nav>
 <div id="ov"></div>
@@ -135,7 +137,8 @@ function monedaCuenta(n){const c=D.cuentas.find(x=>x.nombre===n);return c?c.mone
 function render(){
   $("nav").hidden=false;$("fab").hidden=false;
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-current",String(b.dataset.v===vista)));
-  ({inicio:vInicio,movs:vMovs,aporte:vAporte,comp:vComp})[vista]();
+  $("fab").hidden=vista==="agenda";
+  ({inicio:vInicio,movs:vMovs,aporte:vAporte,comp:vComp,agenda:vAgenda})[vista]();
   window.scrollTo(0,0);
 }
 function vInicio(){
@@ -354,6 +357,147 @@ function dibujarRecibo(m,rc){
   return c;
 }
 run("estado").then(e=>{E=e;if(E.hayFamilia&&cf)cargar();else pantallaClave()}).catch(e=>{$("main").innerHTML=`<div class="card"><b>No se pudo abrir Control Rogelio.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="location.reload()">Volver a intentar</button></div>`});
+
+/* ---------- AGENDA ---------- */
+let A=null, yo=null;
+try{yo=localStorage.getItem("cr_yo")}catch(e){}
+const DSEM=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const dowS=s=>new Date(s+"T12:00:00").getDay();
+const sumD=(s,n)=>{const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const fDia=s=>{const[y,m,d]=s.split("-").map(Number);return DSEM[dowS(s)]+" "+d+" "+M3[m-1]};
+const capi=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function pedirYo(){
+  if(yo) return Promise.resolve(yo);
+  return new Promise(res=>{
+    const H=(A&&A.hermanos)||["Yese","Mau","Adri","Tavo","Chichi","Esteban","Bryan"];
+    $("ov").innerHTML=`<div class="overlay"><form class="sheet" id="fy"><div class="sheet-h"><h2>¿Quién es usted?</h2><button type="button" class="xbtn" id="yx">×</button></div>
+    <span class="sub">Se pregunta una sola vez en este teléfono, para saber quién marcó cada cosa.</span>
+    <div class="pills">${H.map(h=>`<button type="button" class="btn" data-y="${esc(h)}">${esc(h)}</button>`).join("")}</div></form></div>`;
+    $("yx").onclick=()=>{cerrar();res(null)};
+    document.querySelectorAll("[data-y]").forEach(b=>b.onclick=()=>{yo=b.dataset.y;try{localStorage.setItem("cr_yo",yo)}catch(_){}cerrar();res(yo);if(vista==="agenda")pintarAgenda()});
+  });
+}
+async function vAgenda(){
+  if(!A) $("main").innerHTML='<div class="loading">Cargando la agenda de papi…</div>'; else pintarAgenda();
+  try{A=JSON.parse(await run("getAgenda",cf));if(vista==="agenda")pintarAgenda()}
+  catch(e){if(vista==="agenda")$("main").innerHTML=`<div class="card"><b>No se pudo cargar la agenda.</b><span class="sub">${esc(e.message)}</span><button class="btn" onclick="vAgenda()">Volver a intentar</button></div>`}
+}
+async function accion(fn,args,okMsg){
+  const q=await pedirYo(); if(!q) return;
+  try{await run(fn,cf,...args.map(a=>a==="__YO__"?q:a));toast(okMsg);await vAgenda()}catch(e){toast(e.message)}
+}
+function pintarAgenda(){
+  const a=A, h=a.hoy, hh=a.ahora;
+  const tAct=a.turnos.find(t=>t.domingo>=h)||a.turnos[1];
+  const prox=a.turnos.filter(t=>t.domingo>tAct.domingo).slice(0,6);
+  const dHoy=a.dias[a.dias.length-1];
+  const dosisBtn=(d,mom,campo,limite,resp)=>{
+    const x=d[campo]; const tarde=d.fecha<h||hh>=limite;
+    return x?`<div class="row"><span class="n">${mom}</span><span class="v"><span class="pill ok">Dada · ${esc(x.por||"")} ${esc((x.registrado||"").slice(11))}</span></span></div>`
+      :`<div class="row"><span class="n">${mom}<span class="t">Responsable: ${esc(resp)}</span></span><span class="v"><button class="btn ${tarde?"":"primary"}" data-dosis="${mom}" data-f="${d.fecha}">${tarde?"⚠ Marcar dada":"Marcar dada"}</button></span></div>`};
+  const atras=a.dias.slice(0,-1).filter(d=>!d.manana||!d.noche);
+  const pend=a.tareas.filter(t=>t.estado!=="Hecho"), hechas=a.tareas.filter(t=>t.estado==="Hecho");
+  const limiteT=t=>t.id.startsWith("REC-")?t.fecha.slice(0,8)+"05":t.fecha;
+  const citasF=a.citas.filter(c=>c.fecha>=h), citasP=a.citas.filter(c=>c.fecha<h).reverse().slice(0,3);
+  const dias14=[];for(let i=0;i<14;i++)dias14.push(sumD(h,i));
+  const ing=Object.fromEntries(a.ingrid.map(x=>[x.fecha,x]));
+  $("main").innerHTML=`
+  <section class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2>Agenda de papi</h2>
+    <button class="btn" id="yoBtn" style="padding:5px 10px;font-size:.8rem">${yo?"Soy "+esc(yo):"¿Quién es usted?"}</button></div>
+    <span class="sub">${capi(fDia(h))}</span></section>
+
+  <section class="card"><h2>Pastillas de hoy</h2>
+    ${dosisBtn(dHoy,"Mañana","manana","10:00",dHoy.respManana)}
+    ${dosisBtn(dHoy,"Noche","noche","22:00",dHoy.respNoche)}
+    ${atras.length?`<span class="sub" style="margin-top:6px">Días anteriores sin marcar:</span>${atras.map(d=>(d.manana?"":dosisBtn(d,"Mañana del "+fDia(d.fecha),"manana","00:00",d.respManana))+(d.noche?"":dosisBtn(d,"Noche del "+fDia(d.fecha),"noche","00:00",d.respNoche))).join("")}`:""}
+  </section>
+
+  <section class="card"><h2>Turno de esta semana</h2>
+    <div class="row"><span class="n" style="font-size:1.15rem;font-weight:700">${esc(tAct.hermano)}</span><span class="v">${capi(fDia(tAct.dia))}</span></div>
+    <div class="row"><span class="n">Pastillero de la semana</span><span class="v">${tAct.pastillero?`<span class="pill ok">Listo · ${esc(tAct.pastilleroPor)}</span>`:`<button class="btn primary" id="pastBtn">Marcar listo</button>`}</span></div>
+    ${tAct.nota?`<div class="sub" style="white-space:pre-wrap">📝 ${esc(tAct.nota)}</div>`:""}
+    <div class="pills"><button class="btn" id="tDia">Cambiar día</button><button class="btn" id="tHer">Cambiar con otro hermano</button><button class="btn" id="tNota">${tAct.nota?"Cambiar nota":"Nota del turno"}</button></div>
+    <span class="sub" style="margin-top:6px">Próximos turnos</span>
+    ${prox.map(t=>`<div class="row"><span class="n">${esc(t.hermano)}${t.cambiado?' <span class="pill warn">cambiado</span>':""}</span><span class="v sub">${fDia(t.dia)}</span></div>`).join("")}
+  </section>
+
+  <section class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Tareas</h2><button class="btn" id="addTarea">+ Tarea</button></div>
+    ${pend.length?pend.map(t=>{const at=h>limiteT(t);return `<div class="row"><span class="n">${esc(t.titulo)}<span class="t">${esc(t.responsable||"Sin responsable")} · ${t.id.startsWith("REC-")?"del 1 al 5":fDia(t.fecha)}${t.notas&&!t.id.startsWith("REC-")?" · "+esc(t.notas):""}</span></span><span class="v">${at?'<span class="pill danger">Atrasada</span> ':""}<button class="btn" data-hecho="${t.id}">Hecho</button></span></div>`}).join(""):'<span class="sub">No hay tareas pendientes.</span>'}
+    ${hechas.length?`<details><summary class="sub">Hechas recientemente (${hechas.length})</summary>${hechas.map(t=>`<div class="row"><span class="n" style="text-decoration:line-through;color:var(--muted)">${esc(t.titulo)}</span><span class="v sub">${esc(t.hechoPor)} · ${esc((t.hechoEl||"").slice(5,10))}</span></div>`).join("")}</details>`:""}
+  </section>
+
+  <section class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Citas médicas</h2><button class="btn" id="addCita">+ Cita</button></div>
+    ${citasF.length?citasF.map(c=>`<div class="row" data-cita="${c.id}" style="cursor:pointer"><span class="n">${esc(c.titulo)}<span class="t">${esc(c.lugar||"")}${c.responsable?" · acompaña "+esc(c.responsable):""}</span></span><span class="v"><b>${capi(fDia(c.fecha))}</b><br><span class="sub">${esc(c.hora||"")}</span></span></div>`).join(""):'<span class="sub">No hay citas próximas.</span>'}
+    ${citasP.length?`<details><summary class="sub">Citas pasadas</summary>${citasP.map(c=>`<div class="row" data-cita="${c.id}"><span class="n">${esc(c.titulo)}</span><span class="v sub">${fDia(c.fecha)}</span></div>`).join("")}</details>`:""}
+  </section>
+
+  <section class="card"><h2>Doña Ingrid</h2><span class="sub">Toque un día para marcar si viene o no. Lo coordina ${esc((a.responsables["Días de Doña Ingrid"]||{}).semana||"Bryan")}.</span>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">${dias14.map(f=>{const x=ing[f];return `<button class="btn" data-ing="${f}" style="padding:6px 2px;font-size:.75rem;${x?"background:var(--accent);color:#fff;border-color:var(--accent)":""}">${DSEM[dowS(f)].slice(0,3)}<br><b>${Number(f.slice(8))}</b>${x?`<br>${esc(x.hora)}`:""}</button>`}).join("")}</div>
+  </section>
+  <section class="card"><h2>Responsables</h2><span class="sub">Toque un nombre para cambiarlo. El calendario se actualiza solo.</span>
+    <div class="row"><span class="n sub">Tarea</span><span class="v sub">Lun–jue · Vie–dom</span></div>
+    ${Object.entries(a.responsables).map(([t,r])=>`<div class="row"><span class="n">${esc(t)}</span><span class="v"><button class="btn" style="padding:4px 9px" data-resp="${esc(t)}" data-g="semana">${esc(r.semana||"—")}</button> <button class="btn" style="padding:4px 9px" data-resp="${esc(t)}" data-g="finde">${esc(r.finde||"—")}</button></span></div>`).join("")}
+  </section>`;
+  $("yoBtn").onclick=()=>{yo=null;try{localStorage.removeItem("cr_yo")}catch(_){}pedirYo()};
+  document.querySelectorAll("[data-dosis]").forEach(b=>b.onclick=()=>{b.disabled=true;accion("marcarDosis",[b.dataset.dosis,"__YO__",b.dataset.f],"Dosis marcada").finally(()=>b.disabled=false)});
+  if($("pastBtn"))$("pastBtn").onclick=()=>accion("turnoAccion",[tAct.domingo,{pastillero:true},"__YO__"],"Pastillero listo");
+  $("tDia").onclick=()=>formTurno(tAct,"dia");$("tHer").onclick=()=>formTurno(tAct,"hermano");$("tNota").onclick=()=>formTurno(tAct,"nota");
+  $("addTarea").onclick=()=>formItem("Tarea");$("addCita").onclick=()=>formItem("Cita");
+  document.querySelectorAll("[data-hecho]").forEach(b=>b.onclick=()=>{b.disabled=true;accion("completarItem",[b.dataset.hecho,"__YO__",true],"Tarea marcada como hecha")});
+  document.querySelectorAll("[data-cita]").forEach(r=>r.onclick=()=>formItem("Cita",a.citas.find(c=>c.id===r.dataset.cita)));
+  document.querySelectorAll("[data-resp]").forEach(b=>b.onclick=()=>{const t=b.dataset.resp,g=b.dataset.g;
+    hoja("Responsable",`<span class="sub">${esc(t)} · ${g==="finde"?"viernes a domingo":"lunes a jueves"}</span><div class="field"><select id="rS">${opts(A.hermanos,b.textContent)}</select></div>`,
+      async q=>{await run("setResponsable",cf,t,g,$("rS").value,q);toast("Responsable cambiado")})});
+  document.querySelectorAll("[data-ing]").forEach(b=>b.onclick=()=>formIngrid(b.dataset.ing,ing[b.dataset.ing]));
+}
+function hoja(titulo,cuerpo,onOk,extraBtn){
+  if(!yo){pedirYo().then(q=>{if(q)hoja(titulo,cuerpo,onOk,extraBtn)});return}
+  $("ov").innerHTML=`<div class="overlay"><form class="sheet" id="fa"><div class="sheet-h"><h2>${titulo}</h2><button type="button" class="xbtn" id="ax">×</button></div>${cuerpo}
+  <div class="err" id="aerr"></div><div class="pills">${extraBtn||""}<button class="btn primary" style="flex:1">Guardar</button></div></form></div>`;
+  $("ax").onclick=cerrar;
+  $("fa").onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector(".btn.primary");b.disabled=true;
+    try{await onOk(yo);cerrar();await vAgenda()}catch(err){b.disabled=false;$("aerr").textContent=err.message}};
+}
+function formTurno(t,que){
+  if(!yo){pedirYo().then(q=>{if(q)formTurno(t,que)});return}
+  const H=A.hermanos;
+  if(que==="dia"){const dias=[-2,-1,0].map(n=>sumD(t.domingo,n));
+    hoja("Cambiar el día del turno",`<span class="sub">El turno de ${esc(t.hermano)} puede ser viernes, sábado o domingo de esa semana.</span><div class="field"><label for="tdS">Día</label><select id="tdS">${dias.map(d=>`<option value="${d}" ${d===t.dia?"selected":""}>${capi(fDia(d))}</option>`).join("")}</select></div>`,
+      async q=>{await run("turnoAccion",cf,t.domingo,{dia:$("tdS").value},q);toast("Día cambiado")});}
+  if(que==="hermano"){
+    hoja("Cambiar el turno",`<span class="sub">Si cambia con otro hermano, acuérdense de cambiar también el turno de ese hermano.</span><div class="field"><label for="thS">¿Quién hace el turno del ${fDia(t.dia)}?</label><select id="thS">${opts(H,t.hermano)}</select></div>`,
+      async q=>{await run("turnoAccion",cf,t.domingo,{hermano:$("thS").value},q);toast("Turno cambiado")});}
+  if(que==="nota"){
+    hoja("Nota del turno",`<span class="sub">Cómo estuvo papi, si comió bien, si pasó algo… Así el siguiente sabe cómo lo deja.</span><div class="field"><textarea id="tnT" rows="5" maxlength="900">${esc((t.nota||"").replace(/ — [^—]*$/,""))}</textarea></div>`,
+      async q=>{await run("turnoAccion",cf,t.domingo,{nota:$("tnT").value.trim()},q);toast("Nota guardada")});}
+}
+function formItem(tipo,it){
+  if(!yo){pedirYo().then(q=>{if(q)formItem(tipo,it)});return}
+  const H=A.hermanos; it=it||{};
+  const cuerpo=tipo==="Cita"?`
+    <div class="field"><label for="iT">¿Qué cita es?</label><input id="iT" maxlength="150" placeholder="Ej.: Control de presión – EBAIS" value="${esc(it.titulo||"")}"></div>
+    <div class="g2"><div class="field"><label for="iF">Fecha</label><input type="date" id="iF" value="${it.fecha||hoy()}"></div><div class="field"><label for="iH">Hora</label><input type="time" id="iH" value="${it.hora||"08:00"}"></div></div>
+    <div class="field"><label for="iL">Lugar</label><input id="iL" maxlength="150" value="${esc(it.lugar||"")}"></div>
+    <div class="field"><label for="iR">¿Quién lo acompaña?</label><select id="iR"><option value="">Por definir</option>${opts(H,it.responsable)}</select></div>
+    <div class="field"><label for="iN">Notas</label><textarea id="iN" rows="3" maxlength="900" placeholder="Ej.: llevar el carné y los exámenes">${esc(it.notas||"")}</textarea></div>`
+  :`<div class="field"><label for="iT">¿Qué hay que hacer?</label><input id="iT" maxlength="150" placeholder="Ej.: Llevar a papi a sacarse sangre"></div>
+    <div class="g2"><div class="field"><label for="iF">Para cuándo</label><input type="date" id="iF" value="${hoy()}"></div><div class="field"><label for="iR">Responsable</label><select id="iR">${opts(H,yo||"")}</select></div></div>
+    <div class="field"><label for="iN">Notas</label><textarea id="iN" rows="2" maxlength="900"></textarea></div>`;
+  hoja(it.id?"Cita":(tipo==="Cita"?"Nueva cita médica":"Nueva tarea"),cuerpo,async q=>{
+    await run("guardarItem",cf,{id:it.id||"",tipo,titulo:$("iT").value.trim(),fecha:$("iF").value,hora:$("iH")?$("iH").value:"",lugar:$("iL")?$("iL").value.trim():"",responsable:$("iR").value,notas:$("iN").value.trim()},q);
+    toast(tipo==="Cita"?"Cita guardada":"Tarea agregada")},
+    it.id?`<button type="button" class="btn" id="iDel">Borrar</button>`:"");
+  if($("iDel"))$("iDel").onclick=async()=>{if(!confirm("¿Borrar esta cita?"))return;try{await run("borrarItem",cf,it.id);cerrar();toast("Cita borrada");await vAgenda()}catch(e){$("aerr").textContent=e.message}};
+}
+function formIngrid(f,x){
+  if(!yo){pedirYo().then(q=>{if(q)formIngrid(f,x)});return}
+  let def={d:"08:00",h:"14:00"};try{def=JSON.parse(localStorage.getItem("cr_ing"))||def}catch(_){}
+  hoja("Doña Ingrid – "+fDia(f),`<span class="sub">${x?"Está marcado que viene este día.":"¿Viene este día?"}</span>
+    <div class="g2"><div class="field"><label for="gD">Desde</label><input type="time" id="gD" value="${x?x.hora:def.d}"></div><div class="field"><label for="gH">Hasta</label><input type="time" id="gH" value="${x?x.horaFin:def.h}"></div></div>`,
+    async q=>{try{localStorage.setItem("cr_ing",JSON.stringify({d:$("gD").value,h:$("gH").value}))}catch(_){}await run("ingridDia",cf,f,true,$("gD").value,$("gH").value,q);toast("Día de Doña Ingrid guardado")},
+    x?`<button type="button" class="btn" id="gNo">No viene</button>`:"");
+  if($("gNo"))$("gNo").onclick=async()=>{try{await run("ingridDia",cf,f,false,"","",yo||"");cerrar();toast("Día quitado");await vAgenda()}catch(e){$("aerr").textContent=e.message}};
+}
 
 </script>
 </body>
